@@ -110,7 +110,7 @@ class FSCILTrainer(Trainer):
                     self.model.module.update_fc(trainloader, np.unique(train_set.targets), session)
                     self.model.module.soft_calibration(args, session)
                 else:
-                    raise NotImplementedError
+                    self.model.module.update_fc(trainloader, np.unique(train_set.targets), session)
                 
                 tsl, (seenac, unseenac, avgac) = test(self.model, testloader, 0, args, session, result_list=result_list)
 
@@ -123,6 +123,9 @@ class FSCILTrainer(Trainer):
                 logging.info(f"Session {session} ==> Seen Acc:{self.trlog['seen_acc'][-1]} "
                              f"Unseen Acc:{self.trlog['unseen_acc'][-1]} Avg Acc:{self.trlog['max_acc'][session]}")
                 result_list.append('Session {}, test Acc {:.3f}\n'.format(session, self.trlog['max_acc'][session]))
+        
+        # embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
+        # save_s_tne(embedding_list.numpy())
         
         # Finish all incremental sessions, save results.
         result_list, hmeans = postprocess_results(result_list, self.trlog)

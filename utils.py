@@ -10,6 +10,7 @@ from pathlib import Path
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.manifold import TSNE
 import torch
 from sklearn.metrics import confusion_matrix
 import logging
@@ -263,3 +264,31 @@ def get_optimizer(args, model, **kwargs):
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.tmax)
         return optimizer, scheduler
 
+
+def get_features(loader, transform, model):
+    model = model.eval()
+
+    loader.dataset.transform = transform
+    embedding_list = []
+    label_list = []
+    # data_list=[]
+    with torch.no_grad():
+        for i, batch in enumerate(loader):
+            data, label = [_.cuda() for _ in batch]
+            model.module.mode = 'encoder'
+            embedding = model(data)
+
+            embedding_list.append(embedding.cpu())
+            label_list.append(label.cpu())
+    embedding_list = torch.cat(embedding_list, dim=0)
+    label_list = torch.cat(label_list, dim=0)
+    np.save('embedding_list.npy', embedding_list.numpy())
+    np.save('label_list.npy', label_list.numpy())
+    return embedding_list, label_list
+
+def save_s_tne(features):
+    # 创建 t-SNE 实例并拟合数据
+    tsne = TSNE(n_components=2, perplexity=50, random_state=42)
+    test_features_tsne = tsne.fit_transform(features)
+
+    np.save('features_tsne.npy', test_features_tsne)

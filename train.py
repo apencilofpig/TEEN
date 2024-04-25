@@ -12,7 +12,7 @@ def get_command_line_parser():
     # about dataset and network
     parser.add_argument('-project', type=str, default='base', choices=['teen'])
     parser.add_argument('-dataset', type=str, default='cifar100',
-                        choices=['mini_imagenet', 'cub200', 'cifar100'])
+                        choices=['mini_imagenet', 'cub200', 'cifar100', 'swat'])
     parser.add_argument('-dataroot', type=str, default='')
     parser.add_argument('-temperature', type=float, default=16)
     parser.add_argument('-feat_norm', action='store_true', help='If True, normalize the feature.')
@@ -47,7 +47,7 @@ def get_command_line_parser():
     parser.add_argument('-only_do_incre', action='store_true', help='Load model and incremental learning...')
     
     # about training
-    parser.add_argument('-gpu', default='0,1,2,3')
+    parser.add_argument('-gpu', default='0')
     parser.add_argument('-num_workers', type=int, default=8)
     parser.add_argument('-seed', type=int, default=1)
     parser.add_argument('-debug', action='store_true')

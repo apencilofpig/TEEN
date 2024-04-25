@@ -2,7 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.resnet18_encoder import *
+import models.resnet18_swat
 from models.resnet20_cifar import *
+import models
 
 
 class MYNET(nn.Module):
@@ -21,6 +23,29 @@ class MYNET(nn.Module):
         if self.args.dataset in ['cub200','manyshotcub']:
             self.encoder = resnet18(True, args)  # pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             self.num_features = 512
+        if self.args.dataset in ['swat']:
+            # self.encoder = nn.Sequential(
+            #     nn.Conv2d(1, 64, 3),
+            #     nn.BatchNorm2d(64),
+            #     nn.ReLU(),
+            #     nn.MaxPool2d(2, stride=2),
+            #     nn.Dropout(0.3),
+            #     # nn.Conv2d(32, 64, 3),
+            #     # nn.BatchNorm2d(64),
+            #     # nn.ReLU(),
+            #     # nn.MaxPool2d(2, stride=2),
+            #     # nn.Dropout(0.3),
+            #     nn.Conv2d(64, 512, 3),
+            #     nn.BatchNorm2d(512),
+            #     nn.ReLU(),
+            #     nn.MaxPool2d(2, stride=2),
+            #     nn.Dropout(0.3)
+            # )
+            self.encoder = nn.Sequential(
+                nn.Embedding(256, 32),
+                models.resnet18_swat.resnet18(False, args)
+            )
+            self.num_features = 512
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.fc = nn.Linear(self.num_features, self.args.num_classes, bias=False)
@@ -33,7 +58,7 @@ class MYNET(nn.Module):
 
         elif 'dot' in self.mode:
             x = self.fc(x)
-            x = self.args.temperature * x
+            # x = self.args.temperature * x
         return x
 
     def encode(self, x):

@@ -107,7 +107,7 @@ def test(model, testloader, epoch, args, session, result_list=None):
             
         if session > 0:
             save_model_dir = os.path.join(args.save_path, 'session' + str(session) + 'confusion_matrix')
-            cm = confmatrix(lgt,lbs,save_model_dir)
+            cm = confmatrix(lgt,lbs)
             perclassacc = cm.diagonal()
             seenac = np.mean(perclassacc[:args.base_class])
             unseenac = np.mean(perclassacc[args.base_class:])
