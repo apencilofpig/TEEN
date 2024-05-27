@@ -38,7 +38,7 @@ def replace_base_fc(trainset, transform, model, args):
     model = model.eval()
 
     trainloader = torch.utils.data.DataLoader(dataset=trainset, batch_size=128,
-                                              num_workers=8, pin_memory=True, shuffle=False)
+                                              num_workers=args.num_workers, pin_memory=True, shuffle=False)
     trainloader.dataset.transform = transform
     embedding_list = []
     label_list = []

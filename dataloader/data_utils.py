@@ -68,9 +68,9 @@ def get_base_dataloader(args):
 
 
     trainloader = torch.utils.data.DataLoader(dataset=trainset, batch_size=args.batch_size_base, shuffle=True,
-                                              num_workers=8)
+                                              num_workers=args.num_workers)
     testloader = torch.utils.data.DataLoader(
-        dataset=testset, batch_size=args.test_batch_size, shuffle=False, num_workers=8)
+        dataset=testset, batch_size=args.test_batch_size, shuffle=False, num_workers=args.num_workers)
 
     return trainset, trainloader, testloader
 
