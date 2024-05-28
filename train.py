@@ -10,7 +10,7 @@ from utils import Logger, pprint, set_gpu, set_logging, set_seed
 def get_command_line_parser():
     parser = argparse.ArgumentParser()
     # about dataset and network
-    parser.add_argument('-project', type=str, default='base', choices=['teen'])
+    parser.add_argument('-project', type=str, default='base', choices=['teen', 'warp'])
     parser.add_argument('-dataset', type=str, default='cifar100',
                         choices=['mini_imagenet', 'cub200', 'cifar100', 'swat'])
     parser.add_argument('-dataroot', type=str, default='')
@@ -67,6 +67,11 @@ def add_commond_line_parser(params):
         parser.add_argument('-softmax_t', type=float, default=16)
         parser.add_argument('-shift_weight', type=float, default=0.5, help='weights of delta prototypes')
         parser.add_argument('-soft_mode', type=str, default='soft_proto', choices=['soft_proto', 'soft_embed', 'hard_proto'])
+        args = parser.parse_args(params[2:])
+        return args
+    elif project == 'warp':
+        parser.add_argument('-rotation', action='store_true')
+        parser.add_argument('-fraction_to_keep', type=float, default=0.05)
         args = parser.parse_args(params[2:])
         return args
     else:

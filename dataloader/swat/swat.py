@@ -39,12 +39,12 @@ def generate_few_shot(inputs, labels, shot, cls_idx):
         index_all = np.concatenate((index_all, idx_to_keep), axis=0) if index_all is not None else idx_to_keep
     return index_all, inputs[index_all], labels[index_all]
 
-def generate_all_dataset(inputs, labels):
-    # incremental_index_train, incremental_inputs_train, incremental_labels_train = generate_few_shot(inputs, labels, 5, range(26, 36))
-    incremental_index_train, incremental_inputs_train, incremental_labels_train = get_few_shot_from_txt()
+def generate_all_dataset(inputs, labels, base_class_num, shot):
+    incremental_index_train, incremental_inputs_train, incremental_labels_train = generate_few_shot(inputs, labels, shot, range(base_class_num, 36))
+    # incremental_index_train, incremental_inputs_train, incremental_labels_train = get_few_shot_from_txt()
     inputs, labels = remove_unused_index(inputs, labels, incremental_index_train)
-    _, base_inputs, base_labels = get_class_items(inputs, labels, range(26))
-    _, incremental_inputs_test, incremental_labels_test = get_class_items(inputs, labels, range(26, 36))
+    _, base_inputs, base_labels = get_class_items(inputs, labels, range(base_class_num))
+    _, incremental_inputs_test, incremental_labels_test = get_class_items(inputs, labels, range(base_class_num, 36))
     
     
     # 找到标签为0的索引
@@ -68,7 +68,7 @@ labels = df.iloc[:, -1].values
 # inputs = np.pad(inputs, ((0,0), (0,144-126)), mode='constant', constant_values=0)
 # inputs = inputs.reshape(inputs.shape[0], 1, 12, 12)
 inputs = inputs.reshape(inputs.shape[0], 1, -1)
-base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels)
+base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, 21, 5)
 
 
 class Swat(Dataset):

@@ -5,6 +5,9 @@ def sub_set_save_path(args):
     if args.project == 'teen':
         args.save_path = args.save_path +\
             f"-tw_{args.softmax_t}-{args.shift_weight}-{args.soft_mode}"
+    elif args.project == 'warp':
+        args.save_path = args.save_path +\
+            f"-alpha_{args.fraction_to_keep}"
     else:
         raise NotImplementedError
     return args
