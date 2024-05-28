@@ -2,15 +2,18 @@ c:/Users/27220/AppData/Local/miniconda3/envs/python3.8_pytorch1.12.1/python.exe 
     -project warp `
     -dataset swat `
     -dataroot 'TEEN/data/swat' `
+    -model_dir 'checkpoint\swat\teen\ft_dot-avg_cos-data_init-start_0\0528-19-56-13-423-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-tw_16.0-0.1-soft_proto\session0_max_acc.pth' `
     -base_mode 'ft_dot' `
-    -new_mode 'avg_cos' `
+    -new_mode 'ft_cos' `
     -lr_base 0.1 `
+    -lr_new 0.01 `
     -decay 0.0005 `
-    -epochs_base 100 `
+    -epochs_base 0 `
     -batch_size_base 128 `
     -test_batch_size 128 `
     -schedule Cosine `
     -tmax 100 `
     -gpu '0' `
     -temperature 16 `
+    -fraction_to_keep 0.4 `
     -seed 3407

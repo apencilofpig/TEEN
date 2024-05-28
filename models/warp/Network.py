@@ -4,8 +4,7 @@ from models.resnet18_encoder import *
 from models.resnet20_cifar import *
 from models.resnet18_cifar import resnet18_cifar
 import models.resnet18_swat
-from utils import count_acc
-from .utils import identify_importance
+from utils import count_acc, identify_importance
 
 
 class MYNET(nn.Module):

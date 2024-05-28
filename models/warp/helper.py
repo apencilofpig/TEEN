@@ -1,7 +1,7 @@
 # import new Network name here and add in model_class args
 import time
 
-# from .Network import MYNET
+from .Network import MYNET
 from utils import *
 from tqdm import tqdm
 import torch.nn.functional as F
@@ -124,10 +124,10 @@ def test(model, testloader, epoch, args, session):
         va_new = va_new.item()
         va_base_given_new = va_base_given_new.item()
         va_new_given_base = va_new_given_base.item()
-    print('epo {}, test, loss={:.4f} acc={:.4f}'.format(epoch, vl, va))
-    print('base only accuracy: {:.4f}, new only accuracy: {:.4f}'.format(va_base, va_new))
-    print('base acc given new : {:.4f}'.format(va_base_given_new))
-    print('new acc given base : {:.4f}'.format(va_new_given_base))
+    logging.info('epo {}, test, loss={:.4f} acc={:.4f}'.format(epoch, vl, va))
+    logging.info('base only accuracy: {:.4f}, new only accuracy: {:.4f}'.format(va_base, va_new))
+    logging.info('base acc given new : {:.4f}'.format(va_base_given_new))
+    logging.info('new acc given base : {:.4f}'.format(va_new_given_base))
 
     logs = dict(num_session=session + 1, acc=va, base_acc=va_base, new_acc=va_new, base_acc_given_new=va_base_given_new,
                 new_acc_given_base=va_new_given_base)

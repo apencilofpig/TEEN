@@ -8,10 +8,8 @@ from os.path import exists as is_exists
 
 from .helper import *
 from utils import *
-from .utils import *
 from dataloader.data_utils import *
-from .switch_module import switch_module
-from .Network import MYNET
+from models.switch_module import switch_module
 # from tsne_torch import plot_sne
 
 
@@ -131,6 +129,7 @@ class FSCILTrainer(Trainer):
                         best_model_dir = os.path.join(args.save_path, 'session' + str(session) + '_max_acc_replace_head.pth')
                         logging.info('Replace the fc with average embedding, and save it to :%s' % best_model_dir)
                         self.best_model_dict = deepcopy(self.model.state_dict())
+                        torch.save(dict(params=self.model.state_dict()), best_model_dir)
 
                         self.model.module.mode = 'avg_cos'
                         tsl, tsa, logs = test(self.model, testloader, 0, args, session)
@@ -141,20 +140,15 @@ class FSCILTrainer(Trainer):
             else:  # incremental learning sessions
                 logging.info("training session: [%d]" % session)
 
-                # if session > 1:
-                #     compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
-
                 self.model.module.mode = self.args.new_mode
                 self.model.eval()
                 trainloader.dataset.transform = testloader.dataset.transform
                 self.model.module.update_fc(trainloader, np.unique(train_set.targets), session) # 在分类层中添加新类的参数
 
                 if 'ft' in args.new_mode:
-                    # model_bak = deepcopy(self.model.state_dict())
                     restore_weight(self.model)  # 恢复特征空间
                     self.val_model.load_state_dict(deepcopy(self.model.state_dict()), strict=False)
                     tsl, tsa, logs = test(self.val_model, testloader, 0, args, session)
-                    # self.model.load_state_dict(deepcopy(model_bak), strict=False)
                 else:
                     tsl, tsa, logs = test(self.model, testloader, 0, args, session)
 
@@ -163,9 +157,13 @@ class FSCILTrainer(Trainer):
                 save_model_dir = os.path.join(args.save_path, 'session' + str(session) + '_max_acc.pth')
                 self.best_model_dict = deepcopy(self.model.state_dict())
                 logging.info('Saving model to :%s' % save_model_dir)
+                torch.save(dict(params=self.model.state_dict()), save_model_dir)
                 logging.info('  test acc={:.3f}'.format(self.trlog['max_acc'][session]))
 
                 result_list.append('Session {}, test Acc {:.3f}\n'.format(session, self.trlog['max_acc'][session]))
+
+                if session > 0:
+                    compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
 
         # embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
         # save_s_tne(embedding_list.numpy(), label_list.numpy())
