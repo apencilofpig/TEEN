@@ -138,6 +138,9 @@ class Averager():
     def item(self):
         return self.v
 
+    def __repr__(self):
+        return self.v
+
 
 class Timer():
 
@@ -291,12 +294,13 @@ def get_features(loader, transform, model):
     np.save('label_list.npy', label_list.numpy())
     return embedding_list, label_list
 
-def save_s_tne(features):
+def save_s_tne(features, labels):
     # 创建 t-SNE 实例并拟合数据
     tsne = TSNE(n_components=2, perplexity=50, random_state=42)
     test_features_tsne = tsne.fit_transform(features)
 
     np.save('features_tsne.npy', test_features_tsne)
+    np.save('label_list.npy', labels)
 
 
 

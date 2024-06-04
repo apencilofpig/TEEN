@@ -9,6 +9,34 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+def restraint_samples_number(inputs, labels, max_class_item):
+    # 统计每个类的样本数量
+    unique_labels, counts = np.unique(labels, return_counts=True)
+
+    # 创建一个空列表,用于存储处理后的 inputs 和 labels
+    new_inputs = []
+    new_labels = []
+
+    # 遍历每个类
+    for label, count in zip(unique_labels, counts):
+        # 找到该类对应的索引
+        index = np.where(labels == label)[0]
+        
+        # 如果样本数量小于等于 400,则全部保留
+        if count <= max_class_item:
+            new_inputs.extend(inputs[index])
+            new_labels.extend(labels[index])
+        # 如果样本数量大于 400,则随机选择 400 个保留
+        else:
+            selected_index = np.random.choice(index, size=max_class_item, replace=False)
+            new_inputs.extend(inputs[selected_index])
+            new_labels.extend(labels[selected_index])
+
+    # 将列表转换回 NumPy 数组
+    new_inputs = np.array(new_inputs)
+    new_labels = np.array(new_labels)
+    return new_inputs, new_labels
+
 def remove_unused_index(inputs, labels, index_to_remove):
     # 创建条件索引，标记要保留的数据
     index_to_keep = np.ones(len(labels), dtype=bool)
@@ -55,20 +83,25 @@ def generate_all_dataset(inputs, labels, base_class_num, shot):
 
     base_inputs, base_labels = remove_unused_index(base_inputs, base_labels, indices_to_remove)
 
-    base_inputs_train, base_inputs_test, base_labels_train, base_labels_test = train_test_split(base_inputs, base_labels, test_size=0.2, random_state=3407)
+    base_inputs_train, base_inputs_test, base_labels_train, base_labels_test = train_test_split(base_inputs, base_labels, test_size=0.5, random_state=3407)
 
     print(incremental_index_train)
+
+    base_inputs_train, base_labels_train = restraint_samples_number(base_inputs_train, base_labels_train, 128)
+
+    incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 80)
+    base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 80)
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 
 df = pd.read_csv('data/swat/swat_ieee754.csv')
 inputs = df.iloc[:, :-1].values
-labels = df.iloc[:, -1].values
+labels = (df.iloc[:, -1].values) % 36
 # inputs = inputs / 256.0
 # inputs = np.pad(inputs, ((0,0), (0,144-126)), mode='constant', constant_values=0)
 # inputs = inputs.reshape(inputs.shape[0], 1, 12, 12)
 inputs = inputs.reshape(inputs.shape[0], 1, -1)
-base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, 21, 5)
+base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, 26, 5)
 
 
 class Swat(Dataset):

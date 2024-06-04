@@ -5,6 +5,7 @@ from models.resnet20_cifar import *
 from models.resnet18_cifar import resnet18_cifar
 import models.resnet18_swat
 from utils import count_acc, identify_importance
+from .MarginLoss import MarginLoss
 
 
 class MYNET(nn.Module):
@@ -136,6 +137,11 @@ class MYNET(nn.Module):
     def update_fc_ft(self, new_fc, data_imgs,label,session, class_list=None):
         self.eval()
         optimizer_embedding = torch.optim.SGD(self.encoder.parameters(), lr=self.args.lr_new, momentum=0.9)
+
+        fc = self.fc.weight[:self.args.base_class + self.args.way * (session - 1), :].detach()
+        data = self.encode(data_imgs)
+        logits_pre = self.get_logits(data, fc)
+        # logits_pre = torch.nn.functional.pad(logits_pre, (0, 5), mode='constant', value=0)
 
         with torch.enable_grad():
             for epoch in range(self.args.epochs_new):

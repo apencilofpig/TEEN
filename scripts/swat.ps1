@@ -8,7 +8,7 @@ c:/Users/27220/AppData/Local/miniconda3/envs/python3.8_pytorch1.12.1/python.exe 
     -decay 0.0005 `
     -epochs_base 100 `
     -batch_size_base 128 `
-    -test_batch_size 128 `
+    -test_batch_size 80 `
     -schedule Cosine `
     -tmax 100 `
     -gpu '0' `

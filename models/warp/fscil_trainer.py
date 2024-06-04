@@ -162,11 +162,11 @@ class FSCILTrainer(Trainer):
 
                 result_list.append('Session {}, test Acc {:.3f}\n'.format(session, self.trlog['max_acc'][session]))
 
-                if session > 0:
-                    compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
+                # if session > 0:
+                #     compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
 
-        # embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
-        # save_s_tne(embedding_list.numpy(), label_list.numpy())
+        embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
+        save_s_tne(embedding_list.numpy(), label_list.numpy())
 
         result_list.append('Base Session Best Epoch {}\n'.format(self.trlog['max_acc_epoch']))
         result_list.append(self.trlog['max_acc'])
@@ -175,6 +175,6 @@ class FSCILTrainer(Trainer):
 
         t_end_time = time.time()
         total_time = (t_end_time - t_start_time) / 60
-        logging.info('Base Session Best epoch: %s}' % self.trlog['max_acc_epoch'])
+        logging.info('Base Session Best epoch: %s' % self.trlog['max_acc_epoch'])
         logging.info('Total time used %.2f mins' % total_time)
 
