@@ -5,7 +5,7 @@ from models.resnet20_cifar import *
 from models.resnet18_cifar import resnet18_cifar
 import models.resnet18_swat
 from utils import count_acc, identify_importance
-from .MarginLoss import MarginLoss
+from .MarginLoss import MarginLoss, margin_loss
 
 
 class MYNET(nn.Module):
@@ -152,7 +152,8 @@ class MYNET(nn.Module):
                 logits = self.get_logits(data, fc)
                 acc = count_acc(logits, label)
 
-                loss = F.cross_entropy(logits, label)
+                # loss = F.cross_entropy(logits, label)
+                loss = margin_loss(logits, label)
                 optimizer_embedding.zero_grad()
                 loss.backward()
 

@@ -2,7 +2,7 @@ c:/Users/27220/AppData/Local/miniconda3/envs/python3.8_pytorch1.12.1/python.exe 
     -project teen `
     -dataset swat `
     -dataroot 'TEEN/data/swat' `
-    -base_mode 'ft_dot' `
+    -base_mode 'ft_cos' `
     -new_mode 'avg_cos' `
     -lr_base 0.1 `
     -decay 0.0005 `

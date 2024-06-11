@@ -87,7 +87,7 @@ def generate_all_dataset(inputs, labels, base_class_num, shot):
 
     print(incremental_index_train)
 
-    base_inputs_train, base_labels_train = restraint_samples_number(base_inputs_train, base_labels_train, 128)
+    # base_inputs_train, base_labels_train = restraint_samples_number(base_inputs_train, base_labels_train, 128)
 
     incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 80)
     base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 80)

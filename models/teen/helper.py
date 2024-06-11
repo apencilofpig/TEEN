@@ -2,7 +2,7 @@ from utils import *
 from tqdm import tqdm
 import torch.nn.functional as F
 import logging
-from .MarginLoss import MarginLoss
+from .MarginLoss import MarginLoss, margin_loss
 
 
 def base_train(model, trainloader, optimizer, scheduler, epoch, args):
@@ -16,7 +16,8 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args):
 
         logits = model(data)
         logits = logits[:, :args.base_class]
-        loss = F.cross_entropy(logits, train_label)
+        # loss = F.cross_entropy(logits, train_label)
+        loss = margin_loss(logits, train_label)
         acc = count_acc(logits, train_label)
 
         total_loss = loss
