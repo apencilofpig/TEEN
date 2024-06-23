@@ -2,7 +2,7 @@ c:/Users/27220/AppData/Local/miniconda3/envs/python3.8_pytorch1.12.1/python.exe 
     -project teen `
     -dataset swat `
     -dataroot 'TEEN/data/swat' `
-    -model_dir 'checkpoint\swat\warp\ft_dot-avg_cos-data_init-start_0\0528-15-49-31-575-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-alpha_0.05\session0_max_acc.pth' `
+    -model_dir 'checkpoint/swat/teen/ft_cos-avg_cos-data_init-start_0/0611-13-26-15-799-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-tw_16.0-0.1-soft_proto/session0_max_acc.pth' `
     -base_mode 'ft_dot' `
     -new_mode 'avg_cos' `
     -lr_base 0.1 `
@@ -16,5 +16,5 @@ c:/Users/27220/AppData/Local/miniconda3/envs/python3.8_pytorch1.12.1/python.exe 
     -gpu '0' `
     -temperature 16 `
     -shift_weight 0.1 `
-    -soft_mode 'soft_proto' `
+    -soft_mode 'hard_proto' `
     -seed 3407
