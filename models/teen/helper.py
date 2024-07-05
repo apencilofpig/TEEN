@@ -16,8 +16,8 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args):
 
         logits = model(data)
         logits = logits[:, :args.base_class]
-        # loss = F.cross_entropy(logits, train_label)
-        loss = margin_loss(logits, train_label)
+        loss = F.cross_entropy(logits, train_label)
+        # loss = margin_loss(logits, train_label)
         acc = count_acc(logits, train_label)
 
         total_loss = loss

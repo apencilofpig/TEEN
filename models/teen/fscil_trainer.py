@@ -124,8 +124,8 @@ class FSCILTrainer(Trainer):
                              f"Unseen Acc:{self.trlog['unseen_acc'][-1]} Avg Acc:{self.trlog['max_acc'][session]}")
                 result_list.append('Session {}, test Acc {:.3f}\n'.format(session, self.trlog['max_acc'][session]))
         
-        # embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
-        # save_s_tne(embedding_list.numpy())
+        embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
+        save_s_tne(embedding_list.numpy(), label_list.numpy())
         
         # Finish all incremental sessions, save results.
         result_list, hmeans = postprocess_results(result_list, self.trlog)

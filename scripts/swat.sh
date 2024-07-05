@@ -2,18 +2,18 @@ python train.py teen \
     -project teen \
     -dataset swat \
     -dataroot 'TEEN/data/swat' \
-    -base_mode 'ft_dot' \
+    -base_mode 'ft_cos' \
     -new_mode 'avg_cos' \
     -lr_base 0.1 \
     -decay 0.0005 \
-    -epochs_base 10 \
+    -epochs_base 100 \
     -batch_size_base 128 \
-    -test_batch_size 128 \
+    -test_batch_size 80 \
     -schedule Cosine \
     -tmax 100 \
-    -gpu '0' \
+    -gpu '1' \
     -temperature 16 \
     -softmax_t 16 \
     -shift_weight 0.1 \
-    -soft_mode 'soft_proto' \
+    -soft_mode 'hard_proto' \
     -seed 3407
