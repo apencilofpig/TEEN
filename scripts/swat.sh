@@ -2,7 +2,7 @@ python train.py teen \
     -project teen \
     -dataset swat \
     -dataroot 'TEEN/data/swat' \
-    -base_mode 'ft_cos' \
+    -base_mode 'ft_dot' \
     -new_mode 'avg_cos' \
     -lr_base 0.1 \
     -decay 0.0005 \

@@ -9,6 +9,12 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+base_class = 26
+num_classes= 36
+way = 5
+shot = 5
+sessions = 3
+
 def restraint_samples_number(inputs, labels, max_class_item):
     # 统计每个类的样本数量
     unique_labels, counts = np.unique(labels, return_counts=True)
@@ -67,12 +73,12 @@ def generate_few_shot(inputs, labels, shot, cls_idx):
         index_all = np.concatenate((index_all, idx_to_keep), axis=0) if index_all is not None else idx_to_keep
     return index_all, inputs[index_all], labels[index_all]
 
-def generate_all_dataset(inputs, labels, base_class_num, shot):
-    incremental_index_train, incremental_inputs_train, incremental_labels_train = generate_few_shot(inputs, labels, shot, range(base_class_num, 36))
+def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
+    incremental_index_train, incremental_inputs_train, incremental_labels_train = generate_few_shot(inputs, labels, shot, range(base_class_num, num_classes))
     # incremental_index_train, incremental_inputs_train, incremental_labels_train = get_few_shot_from_txt()
     inputs, labels = remove_unused_index(inputs, labels, incremental_index_train)
     _, base_inputs, base_labels = get_class_items(inputs, labels, range(base_class_num))
-    _, incremental_inputs_test, incremental_labels_test = get_class_items(inputs, labels, range(base_class_num, 36))
+    _, incremental_inputs_test, incremental_labels_test = get_class_items(inputs, labels, range(base_class_num, num_classes))
     
     
     # 找到标签为0的索引
@@ -96,12 +102,12 @@ def generate_all_dataset(inputs, labels, base_class_num, shot):
 
 df = pd.read_csv('data/swat/swat_ieee754.csv')
 inputs = df.iloc[:, :-1].values
-labels = (df.iloc[:, -1].values) % 36
+labels = (df.iloc[:, -1].values)
 # inputs = inputs / 256.0
 # inputs = np.pad(inputs, ((0,0), (0,144-126)), mode='constant', constant_values=0)
 # inputs = inputs.reshape(inputs.shape[0], 1, 12, 12)
 inputs = inputs.reshape(inputs.shape[0], 1, -1)
-base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, 26, 5)
+base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, base_class, num_classes, shot)
 
 
 class Swat(Dataset):

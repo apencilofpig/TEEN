@@ -49,11 +49,17 @@ class MYNET(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.fc = nn.Linear(self.num_features, self.args.num_classes, bias=False)
+        self.dropout_fn = nn.Dropout(0.3)
 
     def forward_metric(self, x):
         x = self.encode(x)
         if 'cos' in self.mode:
-            x = F.linear(F.normalize(x, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
+            if self.dropout_fn is None:
+                x = F.linear(F.normalize(x, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
+            else:
+                x = F.linear(self.dropout_fn(F.normalize(x, p=2, dim=-1)), F.normalize(self.fc.weight, p=2, dim=-1))
+
+            # x = F.linear(F.normalize(x, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
             x = self.args.temperature * x
 
         elif 'dot' in self.mode:
