@@ -11,7 +11,7 @@ python train.py teen \
     -test_batch_size 80 \
     -schedule Cosine \
     -tmax 100 \
-    -gpu '1' \
+    -gpu '2' \
     -temperature 16 \
     -softmax_t 16 \
     -shift_weight 0.1 \

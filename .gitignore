@@ -4,3 +4,11 @@ data/
 !data/index_list/
 acc_logs/
 t-sne/
+runs/
+embedding_list.npy
+features_tsne.npy
+label_list.npy
+t-sne.zip
+.gitignore
+dataloader/swat/swat_ieee754_knn4.csv
+dataloader/swat/swat_ieee754_knn6.csv

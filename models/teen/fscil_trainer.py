@@ -8,6 +8,7 @@ from utils import *
 
 from .helper import *
 from .Network import MYNET
+from torch.utils.tensorboard import SummaryWriter
 
 
 class FSCILTrainer(Trainer):
@@ -32,6 +33,7 @@ class FSCILTrainer(Trainer):
             self.best_model_dict = deepcopy(self.model.state_dict())
 
     def train(self,):
+        writer = SummaryWriter()
         args = self.args
         t_start_time = time.time()
         # init train statistics
@@ -47,6 +49,8 @@ class FSCILTrainer(Trainer):
                         start_time = time.time()
                         
                         tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args)
+                        writer.add_scalar("Loss/train", tl, epoch)
+                        writer.flush()
                         tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list)
 
                         # save better model
@@ -138,3 +142,4 @@ class FSCILTrainer(Trainer):
         logging.info(f"Base Session Best epoch:{self.trlog['max_acc_epoch']}")
         logging.info('Total time used %.2f mins' % total_time)
         logging.info(self.args.time_str)
+        writer.close()

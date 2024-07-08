@@ -8,6 +8,7 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
+from imblearn.over_sampling import SMOTE
 
 base_class = 26
 num_classes= 36
@@ -81,13 +82,7 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
     _, incremental_inputs_test, incremental_labels_test = get_class_items(inputs, labels, range(base_class_num, num_classes))
     
     
-    # 找到标签为0的索引
-    zero_indices = np.where(base_labels == 0)[0]
-
-    # 从中选择要去除的数量
-    indices_to_remove = np.random.choice(zero_indices, len(zero_indices)-2000, replace=False)
-
-    base_inputs, base_labels = remove_unused_index(base_inputs, base_labels, indices_to_remove)
+    base_inputs, base_labels = restraint_samples_number(base_inputs, base_labels, 5000)
 
     base_inputs_train, base_inputs_test, base_labels_train, base_labels_test = train_test_split(base_inputs, base_labels, test_size=0.5, random_state=3407)
 
