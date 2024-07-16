@@ -19,6 +19,7 @@ class FSCILTrainer(Trainer):
         
     def set_up_model(self):
         self.model = MYNET(self.args, mode=self.args.base_mode)
+        self.fc = self.model.fc
         self.model = nn.DataParallel(self.model, list(range(self.args.num_gpu)))
         self.model = self.model.cuda()
         
@@ -48,7 +49,7 @@ class FSCILTrainer(Trainer):
                     for epoch in range(args.epochs_base):
                         start_time = time.time()
                         
-                        tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args)
+                        tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args, self.fc)
                         writer.add_scalar("Loss/train", tl, epoch)
                         writer.flush()
                         tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list)

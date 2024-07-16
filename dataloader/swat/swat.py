@@ -82,16 +82,16 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
     _, incremental_inputs_test, incremental_labels_test = get_class_items(inputs, labels, range(base_class_num, num_classes))
     
     
-    base_inputs, base_labels = restraint_samples_number(base_inputs, base_labels, 5000)
+    base_inputs, base_labels = restraint_samples_number(base_inputs, base_labels, 10000)
 
-    base_inputs_train, base_inputs_test, base_labels_train, base_labels_test = train_test_split(base_inputs, base_labels, test_size=0.5, random_state=3407)
+    base_inputs_train, base_inputs_test, base_labels_train, base_labels_test = train_test_split(base_inputs, base_labels, test_size=0.2, random_state=3407)
 
     print(incremental_index_train)
 
     # base_inputs_train, base_labels_train = restraint_samples_number(base_inputs_train, base_labels_train, 128)
 
-    incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 80)
-    base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 80)
+    incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 128)
+    base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 128)
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 

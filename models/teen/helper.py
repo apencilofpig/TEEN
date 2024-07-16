@@ -5,7 +5,7 @@ import logging
 from .MarginLoss import MarginLoss, margin_loss
 
 
-def base_train(model, trainloader, optimizer, scheduler, epoch, args):
+def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc):
     tl = Averager()
     ta = Averager()
     model = model.train()
@@ -16,7 +16,11 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args):
 
         logits = model(data)
         logits = logits[:, :args.base_class]
-        loss = F.cross_entropy(logits, train_label)
+
+        proto_0 = fc.weight[:, 0]
+        dists = F.cosine_similarity(fc.weight[:, 1:], proto_0.unsqueeze(1), dim=0)
+
+        loss = F.cross_entropy(logits, train_label) + dists.mean()
         # loss = margin_loss(logits, train_label)
         acc = count_acc(logits, train_label)
 
@@ -92,6 +96,65 @@ def get_accuracy_per_class(model, testloader, num_classes):
 
     acc_per_class = [correct / total if total != 0 else 0 for correct, total in zip(correct_per_class, total_per_class)]
     return acc_per_class
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+def get_accuracy_confusion_matrix(model, testloader, num_classes, save_path):
+    """
+    计算模型在测试数据集上的准确率和混淆矩阵,并可视化混淆矩阵。
+    
+    参数:
+    model (nn.Module): 要评估的深度学习模型
+    testloader (DataLoader): 测试数据集的数据加载器
+    num_classes (int): 分类问题的类别数量
+    
+    返回:
+    accuracy (float): 模型在测试数据集上的准确率
+    cm (numpy.ndarray): 模型的混淆矩阵
+    """
+
+    # 创建一个函数来格式化单元格值
+    def format_cell(value):
+        return f"{value:.1f}"
+
+    # 设置模型为评估模式
+    model.eval()
+    
+    # 初始化预测标签和真实标签列表
+    y_true = []
+    y_pred = []
+    
+    # 在测试数据集上进行预测
+    with torch.no_grad():
+        for images, labels in testloader:
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            y_true.extend(labels.tolist())
+            y_pred.extend(predicted.tolist())
+    
+    # 计算准确率
+    accuracy = 100 * (np.array(y_true) == np.array(y_pred)).sum() / len(y_true)
+    
+    # 计算混淆矩阵
+    cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes)))
+    cm = (cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100).astype('int') # 归一化
+    
+    plt.rcParams.update({'font.size': 8})
+    fig, ax = plt.subplots(figsize=(8, 8), dpi=800)
+    # 可视化混淆矩阵
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=list(range(num_classes)))
+    disp.plot(cmap='Blues', ax=ax)
+    ax.tick_params(axis='both', which='major', labelsize=8)
+    ax.set_xticks(np.arange(len(disp.display_labels)))
+    ax.set_yticks(np.arange(len(disp.display_labels)))
+    ax.set_xticklabels(disp.display_labels)
+    ax.set_yticklabels(disp.display_labels)
+    ax.tick_params(axis='both', which='major', pad=10)
+    plt.savefig(save_path)
+    
+    return accuracy, cm
 
 
 def test(model, testloader, epoch, args, session, result_list=None):
