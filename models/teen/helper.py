@@ -5,7 +5,7 @@ import logging
 from .MarginLoss import MarginLoss, margin_loss
 
 
-def base_train(model, trainloader, optimizer, scheduler, epoch, args):
+def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc):
     tl = Averager()
     ta = Averager()
     model = model.train()
@@ -16,7 +16,11 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args):
 
         logits = model(data)
         logits = logits[:, :args.base_class]
-        loss = F.cross_entropy(logits, train_label)
+
+        proto_0 = fc.weight[:, 0]
+        dists = F.cosine_similarity(fc.weight[:, 1:], proto_0.unsqueeze(1), dim=0)
+
+        loss = F.cross_entropy(logits, train_label) + dists.mean()
         # loss = margin_loss(logits, train_label)
         acc = count_acc(logits, train_label)
 
