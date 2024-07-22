@@ -8,7 +8,6 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-from imblearn.over_sampling import SMOTE
 
 base_class = 26
 num_classes= 36
