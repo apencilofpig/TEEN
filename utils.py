@@ -19,6 +19,7 @@ from dataloader.data_utils import *
 from torch.utils.data import DataLoader, Sampler
 from tqdm import tqdm
 from models import *
+import colorsys
 
 
 
@@ -290,17 +291,16 @@ def get_features(loader, transform, model):
             label_list.append(label.cpu())
     embedding_list = torch.cat(embedding_list, dim=0)
     label_list = torch.cat(label_list, dim=0)
-    np.save('embedding_list.npy', embedding_list.numpy())
-    np.save('label_list.npy', label_list.numpy())
     return embedding_list, label_list
 
-def save_s_tne(features, labels):
+def save_s_tne(features, labels, save_path_dir):
     # 创建 t-SNE 实例并拟合数据
     tsne = TSNE(n_components=2, perplexity=50, random_state=42)
     test_features_tsne = tsne.fit_transform(features)
 
-    np.save('features_tsne.npy', test_features_tsne)
-    np.save('label_list.npy', labels)
+    np.save(os.path.join(save_path_dir, 'features_tsne.npy'), test_features_tsne)
+    np.save(os.path.join(save_path_dir, 'label_list.npy'), labels)
+
 
 
 

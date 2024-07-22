@@ -142,6 +142,9 @@ def get_accuracy_confusion_matrix(model, testloader, num_classes, save_path):
     cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes)))
     cm = (cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100).astype('int') # 归一化
     
+    # 更改默认字体
+    plt.rcParams['font.family'] = 'Ubuntu'  # 这里以 'SimHei' 字体为例
+    plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
     plt.rcParams.update({'font.size': 8})
     fig, ax = plt.subplots(figsize=(8, 8), dpi=800)
     # 可视化混淆矩阵
