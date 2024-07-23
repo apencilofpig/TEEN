@@ -9,8 +9,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-base_class = 26
-num_classes= 36
+base_class = 31
+num_classes= 41
 way = 5
 shot = 5
 sessions = 3
@@ -94,7 +94,7 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 
-df = pd.read_csv('data/swat/swat_ieee754.csv')
+df = pd.read_csv('data/swat/swat_ieee754_knn6.csv')
 inputs = df.iloc[:, :-1].values
 labels = (df.iloc[:, -1].values)
 # inputs = inputs / 256.0
