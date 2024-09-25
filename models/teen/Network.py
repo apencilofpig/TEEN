@@ -49,23 +49,24 @@ class MYNET(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.fc = nn.Linear(self.num_features, self.args.num_classes, bias=False)
+        self.centers = nn.Parameter(torch.randn(6, self.num_features)).to('cuda')
         self.dropout_fn = nn.Dropout(0.3)
 
     def forward_metric(self, x):
-        x = self.encode(x)
+        x_feature = self.encode(x)
         if 'cos' in self.mode:
             if self.dropout_fn is None:
-                x = F.linear(F.normalize(x, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
+                x = F.linear(F.normalize(x_feature, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
             else:
-                x = F.linear(self.dropout_fn(F.normalize(x, p=2, dim=-1)), F.normalize(self.fc.weight, p=2, dim=-1))
+                x = F.linear(self.dropout_fn(F.normalize(x_feature, p=2, dim=-1)), F.normalize(self.fc.weight, p=2, dim=-1))
 
             # x = F.linear(F.normalize(x, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
             x = self.args.temperature * x
 
         elif 'dot' in self.mode:
-            x = self.fc(x)
+            x = self.fc(x_feature)
             # x = self.args.temperature * x
-        return x
+        return x_feature, x
 
     def encode(self, x):
         x = self.encoder(x)
@@ -75,8 +76,8 @@ class MYNET(nn.Module):
 
     def forward(self, input):
         if self.mode != 'encoder':
-            input = self.forward_metric(input)
-            return input
+            x_feature, input = self.forward_metric(input)
+            return x_feature, input
         elif self.mode == 'encoder':
             input = self.encode(input)
             return input

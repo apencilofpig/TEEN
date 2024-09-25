@@ -1,3 +1,4 @@
+from .MultiCenterLoss import MultiCenterLoss
 from utils import *
 from tqdm import tqdm
 import torch.nn.functional as F
@@ -5,7 +6,7 @@ import logging
 from .MarginLoss import MarginLoss, margin_loss
 
 
-def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc):
+def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, centers):
     tl = Averager()
     ta = Averager()
     model = model.train()
@@ -14,8 +15,10 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc):
     for i, batch in enumerate(tqdm_gen, 1):
         data, train_label = [_.cuda() for _ in batch]
 
-        logits = model(data)
+        x_feature, logits = model(data)
         logits = logits[:, :args.base_class]
+        
+        multi_center_loss = MultiCenterLoss(num_centers=3, feature_dim=512, centers=centers)
 
         # proto_0 = fc.weight[:, 0]
         # dists = F.cosine_similarity(fc.weight[:, 1:], proto_0.unsqueeze(1), dim=0)
@@ -25,7 +28,7 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc):
         # loss = margin_loss(logits, train_label)
         acc = count_acc(logits, train_label)
 
-        total_loss = loss
+        total_loss = loss + 0.1 * multi_center_loss(x_feature, train_label)
 
         lrc = scheduler.get_last_lr()[0]
         tqdm_gen.set_description(
@@ -87,7 +90,7 @@ def get_accuracy_per_class(model, testloader, num_classes):
                 inputs = inputs.cuda()
                 labels = labels.cuda()
 
-            outputs = model(inputs)
+            _, outputs = model(inputs)
             _, preds = torch.max(outputs, 1)
 
             for i in range(num_classes):
@@ -130,7 +133,7 @@ def get_accuracy_confusion_matrix(model, testloader, num_classes, save_path):
     # 在测试数据集上进行预测
     with torch.no_grad():
         for images, labels in testloader:
-            outputs = model(images)
+            _, outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             y_true.extend(labels.tolist())
             y_pred.extend(predicted.tolist())
@@ -161,7 +164,7 @@ def get_accuracy_confusion_matrix(model, testloader, num_classes, save_path):
     return accuracy, cm
 
 
-def test(model, testloader, epoch, args, session, result_list=None):
+def test(model, testloader, epoch, args, session, result_list=None, centers=None):
     test_class = args.base_class + session * args.way
     print(get_accuracy_per_class(model, testloader, test_class))
     model = model.eval()
@@ -173,7 +176,8 @@ def test(model, testloader, epoch, args, session, result_list=None):
     with torch.no_grad():
         for i, batch in enumerate(testloader, 1):
             data, test_label = [_.cuda() for _ in batch]
-            logits = model(data)
+            x_feature, logits = model(data)
+            multi_center_loss = MultiCenterLoss(num_centers=3, feature_dim=512, centers=centers)
             logits = logits[:, :test_class]
             loss = F.cross_entropy(logits, test_label)
             acc = count_acc(logits, test_label)
