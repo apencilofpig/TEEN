@@ -57,7 +57,7 @@ def replace_base_fc(trainset, transform, model, args):
     with torch.no_grad():
         for i, batch in enumerate(trainloader):
             data, label = [_.cuda() for _ in batch]
-            model.module.mode = 'encoder'
+            model.mode = 'encoder'
             embedding = model(data)
 
             embedding_list.append(embedding.cpu())
@@ -75,7 +75,7 @@ def replace_base_fc(trainset, transform, model, args):
 
     proto_list = torch.stack(proto_list, dim=0)
 
-    model.module.fc.weight.data[:args.base_class] = proto_list
+    model.fc.weight.data[:args.base_class] = proto_list
 
     return model
 
@@ -170,7 +170,7 @@ def get_features(loader, transform, model):
     with torch.no_grad():
         for i, batch in enumerate(loader):
             data, label = [_.cuda() for _ in batch]
-            model.module.mode = 'encoder'
+            model.mode = 'encoder'
             embedding = model(data)
 
             embedding_list.append(embedding.cpu())

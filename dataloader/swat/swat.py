@@ -74,14 +74,18 @@ def generate_few_shot(inputs, labels, shot, cls_idx):
     return index_all, inputs[index_all], labels[index_all]
 
 def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
+    # 随机选择小样本
     incremental_index_train, incremental_inputs_train, incremental_labels_train = generate_few_shot(inputs, labels, shot, range(base_class_num, num_classes))
     # incremental_index_train, incremental_inputs_train, incremental_labels_train = get_few_shot_from_txt()
+    # 移除所有小样本
     inputs, labels = remove_unused_index(inputs, labels, incremental_index_train)
+    # 抽出基类样本
     _, base_inputs, base_labels = get_class_items(inputs, labels, range(base_class_num))
+    # 抽出新类样本
     _, incremental_inputs_test, incremental_labels_test = get_class_items(inputs, labels, range(base_class_num, num_classes))
     
     
-    base_inputs, base_labels = restraint_samples_number(base_inputs, base_labels, 1000)
+    base_inputs, base_labels = restraint_samples_number(base_inputs, base_labels, 3000)
 
     base_inputs_train, base_inputs_test, base_labels_train, base_labels_test = train_test_split(base_inputs, base_labels, test_size=0.2, random_state=3407)
 
@@ -89,8 +93,8 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
     # base_inputs_train, base_labels_train = restraint_samples_number(base_inputs_train, base_labels_train, 128)
 
-    incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 128)
-    base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 128)
+    incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 256)
+    base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 256)
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 

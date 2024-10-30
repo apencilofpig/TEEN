@@ -19,15 +19,16 @@ class FSCILTrainer(Trainer):
         
     def set_up_model(self):
         self.model = MYNET(self.args, mode=self.args.base_mode)
-        self.fc = self.model.fc
-        self.centers = self.model.centers
-        self.model = nn.DataParallel(self.model, list(range(self.args.num_gpu)))
+        # self.fc = self.model.fc
+        # self.centers = self.model.centers
+        # self.model = nn.DataParallel(self.model, list(range(self.args.num_gpu)))
         self.model = self.model.cuda()
         
         if self.args.model_dir is not None:
             logging.info('Loading init parameters from: %s' % self.args.model_dir)
             self.best_model_dict = torch.load(self.args.model_dir, 
-                                              map_location={'cuda:3':'cuda:0'})['params']
+                                              map_location=torch.device(f'cuda:{str(0)}'))['params']
+            # print(self.best_model_dict.keys())
         else:
             logging.info('random init params')
             if self.args.start_session > 0:
@@ -49,11 +50,14 @@ class FSCILTrainer(Trainer):
                     optimizer, scheduler = get_optimizer(args, self.model)
                     for epoch in range(args.epochs_base):
                         start_time = time.time()
+
+                        if epoch == args.knn_epoch:
+                            self.trlog['max_acc'][session] = 0
                         
-                        tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args, self.fc, self.centers)
+                        tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args, self.model.fc, self.model.centers)
                         writer.add_scalar("Loss/train", tl, epoch)
                         writer.flush()
-                        tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list, centers=self.centers)
+                        tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list, centers=self.model.centers)
 
                         # save better model
                         if (tsa * 100) >= self.trlog['max_acc'][session]:
@@ -98,8 +102,8 @@ class FSCILTrainer(Trainer):
                     self.best_model_dict = deepcopy(self.model.state_dict())
                     torch.save(dict(params=self.model.state_dict()), best_model_dir)
 
-                    self.model.module.mode = 'avg_cos'
-                    tsl, tsa = test(self.model, testloader, 0, args, session, result_list=result_list, centers = self.centers)
+                    self.model.mode = 'avg_cos'
+                    tsl, tsa = test(self.model, testloader, 0, args, session, result_list=result_list, centers = self.model.centers)
                     if (tsa * 100) >= self.trlog['max_acc'][session]:
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
                         logging.info('The new best test acc of base session={:.3f}'.format(
@@ -108,17 +112,17 @@ class FSCILTrainer(Trainer):
             # incremental learning sessions
             else:  
                 logging.info("training session: [%d]" % session)
-                self.model.module.mode = self.args.new_mode
+                self.model.mode = self.args.new_mode
                 self.model.eval()
                 trainloader.dataset.transform = testloader.dataset.transform
                 
                 if args.soft_mode == 'soft_proto':
-                    self.model.module.update_fc(trainloader, np.unique(train_set.targets), session)
-                    self.model.module.soft_calibration(args, session)
+                    self.model.update_fc(trainloader, np.unique(train_set.targets), session)
+                    self.model.soft_calibration(args, session)
                 else:
-                    self.model.module.update_fc(trainloader, np.unique(train_set.targets), session)
+                    self.model.update_fc(trainloader, np.unique(train_set.targets), session)
                 
-                tsl, (seenac, unseenac, avgac) = test(self.model, testloader, 0, args, session, result_list=result_list, centers = self.centers)
+                tsl, (seenac, unseenac, avgac) = test(self.model, testloader, 0, args, session, result_list=result_list, centers = self.model.centers)
 
                 # update results and save model
                 self.trlog['seen_acc'].append(float('%.3f' % (seenac * 100)))

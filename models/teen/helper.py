@@ -4,6 +4,8 @@ from tqdm import tqdm
 import torch.nn.functional as F
 import logging
 from .MarginLoss import MarginLoss, margin_loss
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import normalize
 
 
 def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, centers):
@@ -12,23 +14,27 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
     model = model.train()
     # standard classification for pretrain
     tqdm_gen = tqdm(trainloader)
+    if epoch == args.knn_epoch:
+        avg_features = torch.tensor(extract_features_and_cluster(trainloader, model, 0, args.multi_proto_num), dtype=torch.float32, device='cuda')
+        with torch.no_grad():  # 禁用梯度计算，直接赋值
+            centers.copy_(avg_features)
+
     for i, batch in enumerate(tqdm_gen, 1):
         data, train_label = [_.cuda() for _ in batch]
 
         x_feature, logits = model(data)
         logits = logits[:, :args.base_class]
         
-        multi_center_loss = MultiCenterLoss(num_centers=3, feature_dim=512, centers=centers)
+        if epoch < args.knn_epoch:
+            total_loss = F.cross_entropy(logits, train_label)
+        else:
+            multi_center_loss = MultiCenterLoss(target_class=0, centers=centers)
+            weight = torch.ones(26).cuda()
+            weight[0] = 0.1
+            loss = F.cross_entropy(logits, train_label, weight=weight)
+            total_loss = loss + args.alpha1 * multi_center_loss(x_feature, train_label)
 
-        # proto_0 = fc.weight[:, 0]
-        # dists = F.cosine_similarity(fc.weight[:, 1:], proto_0.unsqueeze(1), dim=0)
-
-        # loss = F.cross_entropy(logits, train_label) + dists.mean()
-        loss = F.cross_entropy(logits, train_label)
-        # loss = margin_loss(logits, train_label)
         acc = count_acc(logits, train_label)
-
-        total_loss = loss + 0.1 * multi_center_loss(x_feature, train_label)
 
         lrc = scheduler.get_last_lr()[0]
         tqdm_gen.set_description(
@@ -37,11 +43,42 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
         ta.add(acc)
 
         optimizer.zero_grad()
-        loss.backward()
+        total_loss.backward()
         optimizer.step()
     tl = tl.item()
     ta = ta.item()
     return tl, ta
+
+def extract_features_and_cluster(trainloader, model, target_class, k_clusters):
+    # Step 1: Gather features for the specified class
+    features = []
+    with torch.no_grad():
+        for inputs, labels in trainloader:
+            inputs, labels = inputs.cuda(), labels.cuda()
+            # Only select samples from the target class
+            mask = labels == target_class
+            if torch.any(mask):
+                # Extract features for the target class samples
+                target_inputs = inputs[mask]
+                target_features, logits = model(target_inputs)
+                target_features = target_features.cpu().numpy()
+                features.append(target_features)
+    
+    # Flatten list of features arrays to single array
+    features = np.concatenate(features, axis=0)
+    # features_normalized = normalize(features, norm='l2', axis=1)
+
+    # Step 2: Apply KMeans clustering
+    kmeans = KMeans(n_clusters=k_clusters, random_state=0).fit(features)
+    cluster_labels = kmeans.labels_
+
+    # Step 3: Calculate average feature for each cluster
+    avg_features = []
+    for cluster_id in range(k_clusters):
+        cluster_features = features[cluster_labels == cluster_id]
+        avg_features.append(np.mean(cluster_features, axis=0))
+    
+    return avg_features
 
 def replace_base_fc(trainset, transform, model, args):
     # replace fc.weight with the embedding average of train data
@@ -55,7 +92,7 @@ def replace_base_fc(trainset, transform, model, args):
     with torch.no_grad():
         for i, batch in enumerate(trainloader):
             data, label = [_.cuda() for _ in batch]
-            model.module.mode = 'encoder'
+            model.mode = 'encoder'
             embedding = model(data)
 
             embedding_list.append(embedding.cpu())
@@ -73,7 +110,7 @@ def replace_base_fc(trainset, transform, model, args):
 
     proto_list = torch.stack(proto_list, dim=0)
 
-    model.module.fc.weight.data[:args.base_class] = proto_list
+    model.fc.weight.data[:args.base_class] = proto_list
 
     return model
 
@@ -133,7 +170,7 @@ def get_accuracy_confusion_matrix(model, testloader, num_classes, save_path):
     # 在测试数据集上进行预测
     with torch.no_grad():
         for images, labels in testloader:
-            _, outputs = model(images)
+            _, outputs = model(images.to('cuda'))
             _, predicted = torch.max(outputs.data, 1)
             y_true.extend(labels.tolist())
             y_pred.extend(predicted.tolist())
@@ -177,7 +214,6 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
         for i, batch in enumerate(testloader, 1):
             data, test_label = [_.cuda() for _ in batch]
             x_feature, logits = model(data)
-            multi_center_loss = MultiCenterLoss(num_centers=3, feature_dim=512, centers=centers)
             logits = logits[:, :test_class]
             loss = F.cross_entropy(logits, test_label)
             acc = count_acc(logits, test_label)
@@ -198,12 +234,6 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
         lgt=lgt.view(-1, test_class)
         lbs=lbs.view(-1)
 
-        # if session > 0:
-        #     _preds = torch.argmax(lgt, dim=1)
-        #     torch.save(_preds, f"pred_labels/{args.project}_{args.dataset}_{session}_preds.pt")
-        #     torch.save(lbs, f"pred_labels/{args.project}_{args.dataset}_{session}_labels.pt")
-        #     torch.save(model.module.fc.weight.data.cpu()[:test_class], f"pred_labels/{args.project}_{args.dataset}_{session}_weights.pt")
-            
         if session > 0:
             save_model_dir = os.path.join(args.save_path, 'session' + str(session) + 'confusion_matrix')
             cm = confmatrix(lgt,lbs)

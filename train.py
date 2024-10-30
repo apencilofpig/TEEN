@@ -51,6 +51,11 @@ def get_command_line_parser():
     parser.add_argument('-num_workers', type=int, default=0)
     parser.add_argument('-seed', type=int, default=1)
     parser.add_argument('-debug', action='store_true')
+
+    # multi-proto training
+    parser.add_argument('-multi_proto_num', type=int, default=3)
+    parser.add_argument('-knn_epoch', type=int, default=2)
+    parser.add_argument('-alpha1', type=int, default=1)
     
     return parser
 
