@@ -6,7 +6,7 @@ python train.py teen \
     -new_mode 'avg_cos' \
     -lr_base 0.1 \
     -decay 0.0005 \
-    -epochs_base 100 \
+    -epochs_base 50 \
     -batch_size_base 128 \
     -test_batch_size 128 \
     -schedule Cosine \
