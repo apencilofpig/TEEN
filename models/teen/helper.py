@@ -11,11 +11,84 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc):
     model = model.train()
     # standard classification for pretrain
     tqdm_gen = tqdm(trainloader)
+    # 参数化设置
+    num_splits = 4  # 划分为几份
+    new_labels = [args.base_class + i for i in range(num_splits)]  # 新标签列表
+    modifications = [
+        {4: 0, 5: 0, 6: 72, 7: 68},  # 第1部分的修改规则
+        {9: 1},  # 第2部分的修改规则
+        {9: 1, 10: 1},
+        {42: 114, 43: 113, 44: 185, 45: 67}
+    ]
+    # 检查参数一致性
+    assert len(new_labels) == num_splits, "每一份需要指定一个新标签"
+    assert len(modifications) == num_splits, "每一份需要指定修改规则"
     for i, batch in enumerate(tqdm_gen, 1):
         data, train_label = [_.cuda() for _ in batch]
 
+        # # 找出标签为 0 的样本索引
+        # mask = (train_label == 0).squeeze()  # 标签为 0 的 mask, (batch_size,)
+
+        # if mask.any():  # 检查是否有标签为 0 的样本
+        #     # 1. 复制标签为0的样本
+        #     new_data = data[mask].clone()  # 复制符合条件的样本
+        #     new_train_label = train_label[mask].clone()  # 复制标签为0的样本标签
+
+        #     # 2. 修改复制样本第3个维度（4, 5, 6, 7位置）上的值
+        #     new_data[:, 0, 4] = 0   # 修改第4个位置的值为0
+        #     new_data[:, 0, 5] = 0   # 修改第5个位置的值为0
+        #     new_data[:, 0, 6] = 72  # 修改第6个位置的值为72
+        #     new_data[:, 0, 7] = 68  # 修改第7个位置的值为68
+        #     new_data[:, 0, 9] = 1
+
+        #     # 3. 修改新样本的标签
+        #     new_train_label[:] = 26  # 将标签修改为新的值
+
+        #     # 4. 将新样本和原始 batch 合并
+        #     data = torch.cat([data, new_data], dim=0)  # 合并数据
+        #     train_label = torch.cat([train_label, new_train_label], dim=0)  # 合并标签
+
+        # 找出标签为 0 的样本索引
+        mask = (train_label == 0).squeeze()  # 标签为 0 的 mask, (batch_size,)
+
+        if mask.any():  # 检查是否有标签为 0 的样本
+            # 1. 复制标签为 0 的样本
+            zero_class_data = data[mask].clone()  # 提取标签为0的样本
+            zero_class_label = train_label[mask].clone()  # 提取对应标签
+
+            # 2. 随机划分为指定份数
+            num_samples = zero_class_data.size(0)
+            indices = torch.randperm(num_samples)  # 随机打乱样本索引
+            splits = torch.chunk(indices, num_splits)  # 按指定份数划分
+
+            # 3. 遍历每一份，修改样本和标签
+            new_data_list, new_labels_list = [], []
+            for split_idx, split_indices in enumerate(splits):
+                # 提取当前划分的样本
+                current_data = zero_class_data[split_indices]
+                current_label = zero_class_label[split_indices]
+
+                # 修改样本值
+                for dim, value in modifications[split_idx].items():
+                    current_data[:, 0, dim] = value
+
+                # 修改标签
+                current_label[:] = new_labels[split_idx]
+
+                # 保存修改后的样本和标签
+                new_data_list.append(current_data)
+                new_labels_list.append(current_label)
+
+            # 4. 合并所有新生成的样本和标签
+            new_data = torch.cat(new_data_list, dim=0)
+            new_labels = torch.cat(new_labels_list, dim=0)
+            data = torch.cat([data, new_data], dim=0)  # 合并到原始数据中
+            train_label = torch.cat([train_label, new_labels], dim=0)  # 合并到原始标签中
+
+
+
         logits = model(data)
-        logits = logits[:, :args.base_class]
+        logits = logits[:, :args.base_class+num_splits]
 
         # proto_0 = fc.weight[:, 0]
         # dists = F.cosine_similarity(fc.weight[:, 1:], proto_0.unsqueeze(1), dim=0)
