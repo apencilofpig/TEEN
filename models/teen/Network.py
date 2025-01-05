@@ -23,7 +23,7 @@ class MYNET(nn.Module):
         if self.args.dataset in ['cub200','manyshotcub']:
             self.encoder = resnet18(True, args)  # pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             self.num_features = 512
-        if self.args.dataset in ['swat']:
+        if self.args.dataset in ['swat', 'wadi']:
             # self.encoder = nn.Sequential(
             #     nn.Conv2d(1, 64, 3),
             #     nn.BatchNorm2d(64),
@@ -85,9 +85,10 @@ class MYNET(nn.Module):
             raise ValueError('Unknown mode')
 
     def update_fc(self,dataloader,class_list,session):
+        global data_imgs
         for batch in dataloader:
-            data, label = [_.cuda() for _ in batch]
-            data=self.encode(data).detach()
+            data_imgs, label = [_.cuda() for _ in batch]
+            data=self.encode(data_imgs).detach()
 
         if self.args.not_data_init:
             new_fc = nn.Parameter(
@@ -96,6 +97,10 @@ class MYNET(nn.Module):
             nn.init.kaiming_uniform_(new_fc, a=math.sqrt(5))
         else:
             new_fc = self.update_fc_avg(data, label, class_list)
+
+        if 'finetune' in self.args.soft_mode:  # further finetune
+            print('further finetune?')
+            self.update_fc_ft(new_fc,data_imgs,label,session, class_list)
 
     def update_fc_avg(self,data,label,class_list):
         new_fc=[]
@@ -113,6 +118,30 @@ class MYNET(nn.Module):
             return F.linear(x,fc)
         elif 'cos' in self.args.new_mode:
             return self.args.temperature * F.linear(F.normalize(x, p=2, dim=-1), F.normalize(fc, p=2, dim=-1))
+        
+    def update_fc_ft(self, new_fc, data_imgs,label,session, class_list=None):
+        self.eval()
+        optimizer_embedding = torch.optim.SGD(self.encoder.parameters(), lr=self.args.lr_new, momentum=0.9)
+
+        fc = self.fc.weight[:self.args.base_class + self.args.way * (session - 1), :].detach()
+        data = self.encode(data_imgs)
+        logits_pre = self.get_logits(data, fc)
+        # logits_pre = torch.nn.functional.pad(logits_pre, (0, 5), mode='constant', value=0)
+
+        with torch.enable_grad():
+            for epoch in range(self.args.epochs_new):
+
+
+                fc = self.fc.weight[:self.args.base_class + self.args.way * session, :].detach()
+                data = self.encode(data_imgs)
+                logits = self.get_logits(data, fc)
+                # acc = count_acc(logits, label)
+
+                loss = F.cross_entropy(logits, label)
+                optimizer_embedding.zero_grad()
+                loss.backward()
+
+                optimizer_embedding.step()
 
     def soft_calibration(self, args, session):
         base_protos = self.fc.weight.data[:args.base_class].detach().cpu().data

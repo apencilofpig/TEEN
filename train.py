@@ -12,16 +12,16 @@ def get_command_line_parser():
     # about dataset and network
     parser.add_argument('-project', type=str, default='base', choices=['teen', 'warp'])
     parser.add_argument('-dataset', type=str, default='cifar100',
-                        choices=['mini_imagenet', 'cub200', 'cifar100', 'swat'])
+                        choices=['mini_imagenet', 'cub200', 'cifar100', 'swat', 'wadi'])
     parser.add_argument('-dataroot', type=str, default='')
     parser.add_argument('-temperature', type=float, default=16)
     parser.add_argument('-feat_norm', action='store_true', help='If True, normalize the feature.')
     
     # about pre-training
     parser.add_argument('-epochs_base', type=int, default=100)
-    parser.add_argument('-epochs_new', type=int, default=100)
+    parser.add_argument('-epochs_new', type=int, default=10)
     parser.add_argument('-lr_base', type=float, default=0.1)
-    parser.add_argument('-lr_new', type=float, default=0.1)
+    parser.add_argument('-lr_new', type=float, default=0.0001)
     
     ## optimizer & scheduler
     parser.add_argument('-optim', type=str, default='sgd', choices=['sgd', 'adam'])
@@ -54,7 +54,7 @@ def get_command_line_parser():
 
     # multi-proto training
     parser.add_argument('-multi_proto_num', type=int, default=3)
-    parser.add_argument('-knn_epoch', type=int, default=2)
+    parser.add_argument('-knn_epoch', type=int, default=100)
     parser.add_argument('-alpha1', type=int, default=1)
     
     return parser
@@ -71,7 +71,7 @@ def add_commond_line_parser(params):
     elif project == 'teen':
         parser.add_argument('-softmax_t', type=float, default=16)
         parser.add_argument('-shift_weight', type=float, default=0.5, help='weights of delta prototypes')
-        parser.add_argument('-soft_mode', type=str, default='soft_proto', choices=['soft_proto', 'soft_embed', 'hard_proto'])
+        parser.add_argument('-soft_mode', type=str, default='soft_proto', choices=['soft_proto', 'soft_embed', 'hard_proto', 'finetune'])
         args = parser.parse_args(params[2:])
         return args
     elif project == 'warp':

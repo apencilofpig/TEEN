@@ -29,7 +29,7 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
             total_loss = F.cross_entropy(logits, train_label)
         else:
             multi_center_loss = MultiCenterLoss(target_class=0, centers=centers)
-            weight = torch.ones(26).cuda()
+            weight = torch.ones(9).cuda()
             weight[0] = 0.1
             loss = F.cross_entropy(logits, train_label, weight=weight)
             total_loss = loss + args.alpha1 * multi_center_loss(x_feature, train_label)

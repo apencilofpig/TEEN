@@ -9,11 +9,11 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-base_class = 26
-num_classes= 36
-way = 2
+base_class = 9
+num_classes= 14
+way = 5
 shot = 5
-sessions = 6
+sessions = 2
 
 def restraint_samples_number(inputs, labels, max_class_item):
     # 统计每个类的样本数量
@@ -98,18 +98,9 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 
-df = pd.read_csv('data/swat/swat_ieee754.csv')
+df = pd.read_csv('data/wadi/wadi_ieee754.csv')
 inputs = df.iloc[:, :-1].values
-new_labels_map = {
-  0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
-  10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 
-  18: 18, 19: 19, 20: 20, 21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 
-  26: 34, 27: 26, 28: 31, 29: 29, 30: 27, 31: 35, 32: 32, 33: 28, 
-  34: 33, 35: 30
-}
-
-labels = df.iloc[:, -1].map(new_labels_map).values
-# labels = df.iloc[:, -1].values
+labels = (df.iloc[:, -1].values)
 # inputs = inputs / 256.0
 # inputs = np.pad(inputs, ((0,0), (0,144-126)), mode='constant', constant_values=0)
 # inputs = inputs.reshape(inputs.shape[0], 1, 12, 12)
@@ -117,7 +108,7 @@ inputs = inputs.reshape(inputs.shape[0], 1, -1)
 base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, base_class, num_classes, shot)
 
 
-class Swat(Dataset):
+class Wadi(Dataset):
 
     def __init__(self, root, train=True, transform=None,
                  index_path=None, index=None, base_sess=None):

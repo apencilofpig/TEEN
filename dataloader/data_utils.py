@@ -28,9 +28,16 @@ def set_up_datasets(args):
         import dataloader.swat.swat as Dataset
         args.base_class = 26
         args.num_classes= 36
+        args.way = 2
+        args.shot = 5
+        args.sessions = 6
+    if args.dataset == 'wadi':
+        import dataloader.wadi.wadi as Dataset
+        args.base_class = 9
+        args.num_classes= 14
         args.way = 5
         args.shot = 5
-        args.sessions = 3
+        args.sessions = 2
     args.Dataset=Dataset
     return args
 
@@ -65,6 +72,11 @@ def get_base_dataloader(args):
         trainset = args.Dataset.Swat(root=args.dataroot, train=True,
                                        index=class_index, base_sess=True)
         testset = args.Dataset.Swat(root=args.dataroot, train=False, index=class_index)
+
+    if args.dataset == 'wadi':
+        trainset = args.Dataset.Wadi(root=args.dataroot, train=True,
+                                       index=class_index, base_sess=True)
+        testset = args.Dataset.Wadi(root=args.dataroot, train=False, index=class_index)
 
 
     trainloader = torch.utils.data.DataLoader(dataset=trainset, batch_size=args.batch_size_base, shuffle=True,
@@ -123,6 +135,9 @@ def get_new_dataloader(args,session):
     if args.dataset == 'swat':
         trainset = args.Dataset.Swat(root=args.dataroot, train=True,
                                        index=np.arange(args.base_class + (session-1) * args.way, args.base_class + session * args.way))
+    if args.dataset == 'wadi':
+        trainset = args.Dataset.Wadi(root=args.dataroot, train=True,
+                                       index=np.arange(args.base_class + (session-1) * args.way, args.base_class + session * args.way))
     if args.batch_size_new == 0:
         batch_size_new = trainset.__len__()
         trainloader = torch.utils.data.DataLoader(dataset=trainset, batch_size=batch_size_new, shuffle=False,
@@ -145,6 +160,9 @@ def get_new_dataloader(args,session):
                                       index=class_new)
     if args.dataset == 'swat':
         testset = args.Dataset.Swat(root=args.dataroot, train=False,
+                                      index=class_new)
+    if args.dataset == 'wadi':
+        testset = args.Dataset.Wadi(root=args.dataroot, train=False,
                                       index=class_new)
 
     testloader = torch.utils.data.DataLoader(dataset=testset, batch_size=args.test_batch_size, shuffle=False,

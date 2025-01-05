@@ -1,5 +1,5 @@
-python train.py teen \
-    -project teen \
+python train.py warp \
+    -project warp \
     -dataset swat \
     -dataroot 'TEEN/data/swat' \
     -base_mode 'ft_dot' \
@@ -13,7 +13,4 @@ python train.py teen \
     -tmax 100 \
     -gpu '0' \
     -temperature 16 \
-    -softmax_t 16 \
-    -shift_weight 0.1 \
-    -soft_mode 'hard_proto' \
-    -seed 3407
+    -seed 3408

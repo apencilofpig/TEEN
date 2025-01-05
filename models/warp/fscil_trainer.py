@@ -64,9 +64,9 @@ class FSCILTrainer(Trainer):
                 if args.epochs_base == 0:
                     if 'ft' in args.new_mode:
                         self.model = replace_base_fc(train_set, testloader.dataset.transform, self.model, args) # 将分类器原型替换为平均特征向量
-                        self.model.mode = args.new_mode
+                        self.model.module.mode = args.new_mode
                         self.val_model.load_state_dict(deepcopy(self.model.state_dict()), strict=False)
-                        self.val_model.mode = args.new_mode
+                        self.val_model.module.mode = args.new_mode
                         tsl, tsa, logs = test(self.val_model, testloader, args.epochs_base, args, session) # 测试基类的性能
                         switch_module(self.model) # 替换特定的卷积层
                         compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
@@ -74,7 +74,7 @@ class FSCILTrainer(Trainer):
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
                     else:
                         self.model = replace_base_fc(train_set, testloader.dataset.transform, self.model, args)
-                        self.model.mode = args.new_mode
+                        self.model.module.mode = args.new_mode
                         tsl, tsa, logs = test(self.model, testloader, args.epochs_base, args, session)
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
 
@@ -131,7 +131,7 @@ class FSCILTrainer(Trainer):
                         self.best_model_dict = deepcopy(self.model.state_dict())
                         torch.save(dict(params=self.model.state_dict()), best_model_dir)
 
-                        self.model.mode = 'avg_cos'
+                        self.model.module.mode = 'avg_cos'
                         tsl, tsa, logs = test(self.model, testloader, 0, args, session)
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
                         logging.info('The new best test acc of base session={:.3f}'.format(self.trlog['max_acc'][session]))
@@ -140,10 +140,10 @@ class FSCILTrainer(Trainer):
             else:  # incremental learning sessions
                 logging.info("training session: [%d]" % session)
 
-                self.model.mode = self.args.new_mode
+                self.model.module.mode = self.args.new_mode
                 self.model.eval()
                 trainloader.dataset.transform = testloader.dataset.transform
-                self.model.update_fc(trainloader, np.unique(train_set.targets), session) # 在分类层中添加新类的参数
+                self.model.module.update_fc(trainloader, np.unique(train_set.targets), session) # 在分类层中添加新类的参数
 
                 if 'ft' in args.new_mode:
                     restore_weight(self.model)  # 恢复特征空间
@@ -166,7 +166,7 @@ class FSCILTrainer(Trainer):
                 #     compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
 
         embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
-        save_s_tne(embedding_list.numpy(), label_list.numpy())
+        save_s_tne(embedding_list.numpy(), label_list.numpy(), args.save_path)
 
         result_list.append('Base Session Best Epoch {}\n'.format(self.trlog['max_acc_epoch']))
         result_list.append(self.trlog['max_acc'])
