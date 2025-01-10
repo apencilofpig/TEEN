@@ -50,6 +50,9 @@ class FSCILTrainer(Trainer):
                     optimizer, scheduler = get_optimizer(args, self.model)
                     for epoch in range(args.epochs_base):
                         start_time = time.time()
+
+                        if epoch == args.knn_epoch:
+                            self.trlog['max_acc'][session] = 0
                         
                         tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args, self.model.fc, self.model.centers)
                         writer.add_scalar("Loss/train", tl, epoch)
@@ -100,7 +103,7 @@ class FSCILTrainer(Trainer):
                     torch.save(dict(params=self.model.state_dict()), best_model_dir)
 
                     self.model.mode = 'avg_cos'
-                    tsl, tsa = test(self.model, testloader, 0, args, session, result_list=result_list)
+                    tsl, tsa = test(self.model, testloader, 0, args, session, result_list=result_list, centers = self.model.centers)
                     if (tsa * 100) >= self.trlog['max_acc'][session]:
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
                         logging.info('The new best test acc of base session={:.3f}'.format(
@@ -113,13 +116,9 @@ class FSCILTrainer(Trainer):
                 self.model.eval()
                 trainloader.dataset.transform = testloader.dataset.transform
                 
-                if args.soft_mode == 'soft_proto':
-                    self.model.update_fc(trainloader, np.unique(train_set.targets), session)
-                    self.model.soft_calibration(args, session)
-                else:
-                    self.model.update_fc(trainloader, np.unique(train_set.targets), session)
+                self.model.update_fc(trainloader, np.unique(train_set.targets), session)
                 
-                tsl, (seenac, unseenac, avgac) = test(self.model, testloader, 0, args, session, result_list=result_list)
+                tsl, (seenac, unseenac, avgac) = test(self.model, testloader, 0, args, session, result_list=result_list, centers = self.model.centers)
 
                 # update results and save model
                 self.trlog['seen_acc'].append(float('%.3f' % (seenac * 100)))

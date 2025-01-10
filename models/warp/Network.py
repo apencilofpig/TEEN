@@ -137,12 +137,7 @@ class MYNET(nn.Module):
     def update_fc_ft(self, new_fc, data_imgs,label,session, class_list=None):
         self.eval()
         optimizer_embedding = torch.optim.SGD(self.encoder.parameters(), lr=self.args.lr_new, momentum=0.9)
-
-        fc = self.fc.weight[:self.args.base_class + self.args.way * (session - 1), :].detach()
-        data = self.encode(data_imgs)
-        logits_pre = self.get_logits(data, fc)
-        # logits_pre = torch.nn.functional.pad(logits_pre, (0, 5), mode='constant', value=0)
-
+        
         with torch.enable_grad():
             for epoch in range(self.args.epochs_new):
 
@@ -150,10 +145,8 @@ class MYNET(nn.Module):
                 fc = self.fc.weight[:self.args.base_class + self.args.way * session, :].detach()
                 data = self.encode(data_imgs)
                 logits = self.get_logits(data, fc)
-                acc = count_acc(logits, label)
 
-                # loss = F.cross_entropy(logits, label)
-                loss = margin_loss(logits, label)
+                loss = F.cross_entropy(logits, label)
                 optimizer_embedding.zero_grad()
                 loss.backward()
 

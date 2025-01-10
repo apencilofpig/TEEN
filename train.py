@@ -10,7 +10,7 @@ from utils import Logger, pprint, set_gpu, set_logging, set_seed
 def get_command_line_parser():
     parser = argparse.ArgumentParser()
     # about dataset and network
-    parser.add_argument('-project', type=str, default='base', choices=['teen', 'warp'])
+    parser.add_argument('-project', type=str, default='base', choices=['teen', 'warp', 'fbo'])
     parser.add_argument('-dataset', type=str, default='cifar100',
                         choices=['mini_imagenet', 'cub200', 'cifar100', 'swat', 'wadi'])
     parser.add_argument('-dataroot', type=str, default='')
@@ -19,9 +19,9 @@ def get_command_line_parser():
     
     # about pre-training
     parser.add_argument('-epochs_base', type=int, default=100)
-    parser.add_argument('-epochs_new', type=int, default=10)
+    parser.add_argument('-epochs_new', type=int, default=30)
     parser.add_argument('-lr_base', type=float, default=0.1)
-    parser.add_argument('-lr_new', type=float, default=0.0001)
+    parser.add_argument('-lr_new', type=float, default=0.01)
     
     ## optimizer & scheduler
     parser.add_argument('-optim', type=str, default='sgd', choices=['sgd', 'adam'])
@@ -51,11 +51,6 @@ def get_command_line_parser():
     parser.add_argument('-num_workers', type=int, default=0)
     parser.add_argument('-seed', type=int, default=1)
     parser.add_argument('-debug', action='store_true')
-
-    # multi-proto training
-    parser.add_argument('-multi_proto_num', type=int, default=3)
-    parser.add_argument('-knn_epoch', type=int, default=100)
-    parser.add_argument('-alpha1', type=int, default=1)
     
     return parser
 
@@ -77,6 +72,13 @@ def add_commond_line_parser(params):
     elif project == 'warp':
         parser.add_argument('-rotation', action='store_true')
         parser.add_argument('-fraction_to_keep', type=float, default=0.05)
+        args = parser.parse_args(params[2:])
+        return args
+    elif project == 'fbo':
+        # multi-proto training
+        parser.add_argument('-multi_proto_num', type=int, default=3)
+        parser.add_argument('-knn_epoch', type=int, default=10)
+        parser.add_argument('-alpha1', type=int, default=1)
         args = parser.parse_args(params[2:])
         return args
     else:

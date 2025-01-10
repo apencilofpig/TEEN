@@ -3,7 +3,6 @@ from utils import *
 from tqdm import tqdm
 import torch.nn.functional as F
 import logging
-from .MarginLoss import MarginLoss, margin_loss
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
 
@@ -14,6 +13,10 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
     model = model.train()
     # standard classification for pretrain
     tqdm_gen = tqdm(trainloader)
+    if epoch == args.knn_epoch:
+        avg_features = torch.tensor(extract_features_and_cluster(trainloader, model, 0, args.multi_proto_num), dtype=torch.float32, device='cuda')
+        with torch.no_grad():  # 禁用梯度计算，直接赋值
+            centers.copy_(avg_features)
 
     for i, batch in enumerate(tqdm_gen, 1):
         data, train_label = [_.cuda() for _ in batch]
@@ -21,7 +24,14 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
         x_feature, logits = model(data)
         logits = logits[:, :args.base_class]
         
-        total_loss = F.cross_entropy(logits, train_label)
+        if epoch < args.knn_epoch:
+            total_loss = F.cross_entropy(logits, train_label)
+        else:
+            multi_center_loss = MultiCenterLoss(target_class=0, centers=centers)
+            weight = torch.ones(16).cuda()
+            weight[0] = 0.1
+            loss = F.cross_entropy(logits, train_label, weight=weight)
+            total_loss = loss + args.alpha1 * multi_center_loss(x_feature, train_label)
 
         acc = count_acc(logits, train_label)
 

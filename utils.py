@@ -251,7 +251,7 @@ def harm_mean(seen, unseen):
 
 def get_optimizer(args, model, **kwargs):
         # prepare optimizer
-        if args.project in ['teen', 'warp']:
+        if args.project in ['teen', 'warp', 'fbo']:
             if args.optim == 'sgd':
                 optimizer = torch.optim.SGD(model.parameters(), args.lr_base, 
                                             momentum=args.momentum, nesterov=True,
@@ -420,8 +420,8 @@ def identify_importance(args, model, trainset, batchsize=60, keep_ratio=0.1, ses
         if isinstance(module, WaRPModule):
             coeff_mask = masks[module]
             coeff_mask = same_device(ensure_tensor(coeff_mask), module.basis_coefficients)
-            # module.coeff_mask.data = 1 - (1 - coeff_mask.data) * (1 - module.coeff_mask_prev.data)
-            module.coeff_mask.data = torch.clamp(coeff_mask.data + module.coeff_mask_prev.data, min=0, max=1)
+            module.coeff_mask.data = 1 - (1 - coeff_mask.data) * (1 - module.coeff_mask_prev.data)
+            # module.coeff_mask.data = torch.clamp(coeff_mask.data + module.coeff_mask_prev.data, min=0, max=1)
             # softmax_coeff_mask = importances[module]
             # softmax_coeff_mask = same_device(ensure_tensor(softmax_coeff_mask), module.basis_coefficients)
             # module.coeff_mask.data = torch.clamp(coeff_mask + module.coeff_mask_prev.data + importances_softmax(softmax_coeff_mask.data), min=0, max=1)
@@ -508,7 +508,7 @@ def threshold_mask(tensor, threshold):
     assert isinstance(tensor, np.ndarray)
     idx = np.logical_and(tensor < threshold, tensor > -threshold)
     mask = np.ones_like(tensor)
-    mask[idx] = tensor[idx]
+    mask[idx] = 0
     return mask
 
 

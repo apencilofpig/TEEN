@@ -2,7 +2,7 @@ python train.py warp \
     -project warp \
     -dataset swat \
     -dataroot 'TEEN/data/swat' \
-    -model_dir 'checkpoint/swat/teen/ft_dot-avg_cos-data_init-start_0/0722-19-36-47-227-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-tw_16.0-0.1-hard_proto/session0_max_acc.pth' \
+    -model_dir 'checkpoint/swat/teen/ft_dot-avg_cos-data_init-start_0/0109-14-31-44-458-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-tw_16.0-0.1-hard_proto/session0_max_acc.pth' \
     -base_mode 'ft_dot' \
     -new_mode 'ft_cos' \
     -lr_base 0.1 \
@@ -11,10 +11,10 @@ python train.py warp \
     -epochs_base 0 \
     -epochs_new 30 \
     -batch_size_base 128 \
-    -test_batch_size 80 \
+    -test_batch_size 128 \
     -schedule Cosine \
     -tmax 100 \
     -gpu '0' \
     -temperature 16 \
-    -fraction_to_keep 0 \
+    -fraction_to_keep 0.7 \
     -seed 3407

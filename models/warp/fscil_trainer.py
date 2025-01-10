@@ -34,6 +34,12 @@ class FSCILTrainer(Trainer):
         if self.args.model_dir is not None:
             logging.info('Loading init parameters from: %s' % self.args.model_dir)
             self.best_model_dict = torch.load(self.args.model_dir)['params']
+            from collections import OrderedDict
+            new_state_dict = OrderedDict()
+            for k, v in self.best_model_dict.items():
+                name = 'module.' + k  # 添加 'module.' 前缀
+                new_state_dict[name] = v
+            self.best_model_dict = new_state_dict
 
         else:
             logging.info('random init params')

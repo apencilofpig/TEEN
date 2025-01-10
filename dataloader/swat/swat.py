@@ -9,11 +9,11 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-base_class = 26
+base_class = 16
 num_classes= 36
 way = 2
 shot = 5
-sessions = 6
+sessions = 11
 
 def restraint_samples_number(inputs, labels, max_class_item):
     # 统计每个类的样本数量
@@ -74,6 +74,11 @@ def generate_few_shot(inputs, labels, shot, cls_idx):
     return index_all, inputs[index_all], labels[index_all]
 
 def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
+    # attack_index = np.where(labels != 0)[0]
+    # select_normal_index = np.r_[1634:1734, 2946:3046, 4800:4900, 6358:6458, 7132:7232, 7584:7684, 11284:11384, 15260:15360, 90568:90668, 92039:92139, 93323:93423, 102991:103091, 115721:115821, 116022:116122, 116898:116998, 132793:132893, 142826:142926, 172167:172267, 172791:172891, 198172:198272, 227727:227827, 229420:229520, 279959:280059, 302552:302652, 303920:304020]
+    # index = np.concatenate((select_normal_index, attack_index), axis=0)
+    # inputs, labels = inputs[index], labels[index]
+
     # 随机选择小样本
     incremental_index_train, incremental_inputs_train, incremental_labels_train = generate_few_shot(inputs, labels, shot, range(base_class_num, num_classes))
     # incremental_index_train, incremental_inputs_train, incremental_labels_train = get_few_shot_from_txt()
@@ -100,16 +105,16 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
 df = pd.read_csv('data/swat/swat_ieee754.csv')
 inputs = df.iloc[:, :-1].values
-new_labels_map = {
-  0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
-  10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 
-  18: 18, 19: 19, 20: 20, 21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 
-  26: 34, 27: 26, 28: 31, 29: 29, 30: 27, 31: 35, 32: 32, 33: 28, 
-  34: 33, 35: 30
-}
+# new_labels_map = {
+#   0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
+#   10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 
+#   18: 18, 19: 19, 20: 20, 21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 
+#   26: 34, 27: 26, 28: 31, 29: 29, 30: 27, 31: 35, 32: 32, 33: 28, 
+#   34: 33, 35: 30
+# }
 
-labels = df.iloc[:, -1].map(new_labels_map).values
-# labels = df.iloc[:, -1].values
+# labels = df.iloc[:, -1].map(new_labels_map).values
+labels = df.iloc[:, -1].values
 # inputs = inputs / 256.0
 # inputs = np.pad(inputs, ((0,0), (0,144-126)), mode='constant', constant_values=0)
 # inputs = inputs.reshape(inputs.shape[0], 1, 12, 12)

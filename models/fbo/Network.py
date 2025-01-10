@@ -49,6 +49,7 @@ class MYNET(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.fc = nn.Linear(self.num_features, self.args.num_classes, bias=False)
+        self.centers = nn.Parameter(torch.randn(args.multi_proto_num, self.num_features)).to('cuda')
         self.dropout_fn = nn.Dropout(0.3)
 
     def forward_metric(self, x):
@@ -97,9 +98,8 @@ class MYNET(nn.Module):
         else:
             new_fc = self.update_fc_avg(data, label, class_list)
 
-        if 'finetune' in self.args.soft_mode:  # further finetune
-            print('further finetune?')
-            self.update_fc_ft(new_fc,data_imgs,label,session, class_list)
+        print('further finetune?')
+        self.update_fc_ft(new_fc,data_imgs,label,session, class_list)
 
     def update_fc_avg(self,data,label,class_list):
         new_fc=[]

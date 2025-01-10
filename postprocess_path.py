@@ -8,6 +8,9 @@ def sub_set_save_path(args):
     elif args.project == 'warp':
         args.save_path = args.save_path +\
             f"-alpha_{args.fraction_to_keep}"
+    elif args.project == 'fbo':
+        args.save_path = args.save_path +\
+            f"-multi_proto_num_{args.multi_proto_num}-knn_epoch_{args.knn_epoch}-alpha1_{args.alpha1}"
     else:
         raise NotImplementedError
     return args
