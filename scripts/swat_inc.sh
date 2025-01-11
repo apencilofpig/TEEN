@@ -16,5 +16,5 @@ python train.py teen \
     -temperature 16 \
     -softmax_t 16 \
     -shift_weight 0.1 \
-    -soft_mode 'finetune' \
+    -soft_mode 'hard_proto' \
     -seed 3407

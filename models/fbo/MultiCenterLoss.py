@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class MultiCenterLoss(nn.Module):
-    def __init__(self, target_class, centers):
+    def __init__(self, target_class, model):
         super(MultiCenterLoss, self).__init__()
         self.target_class = target_class
-        self.centers = centers  # centers是多中心原型，类型为nn.Parameter
+        self.model = model  # centers是多中心原型，类型为nn.Parameter
 
     def forward(self, x_feature, train_label):
         mask = train_label == self.target_class
@@ -15,10 +15,19 @@ class MultiCenterLoss(nn.Module):
             target_features = x_feature[mask]
             target_labels = train_label[mask]
 
-            with torch.no_grad():
-                new_labels = self.assign_new_labels(target_features, self.centers)
+            if 'cos' in self.model.mode:
+                if self.dropout_fn is None:
+                    new_logits = F.linear(F.normalize(target_features, p=2, dim=-1), F.normalize(self.model.centers.weight, p=2, dim=-1))
+                else:
+                    new_logits = F.linear(self.model.dropout_fn(F.normalize(target_features, p=2, dim=-1)), F.normalize(self.model.centers.weight, p=2, dim=-1))
 
-            new_logits = F.linear(target_features, self.centers)
+                new_logits = self.model.args.temperature * new_logits
+
+            elif 'dot' in self.model.mode:
+                new_logits = self.model.centers(target_features)
+
+            with torch.no_grad():
+                _, new_labels = torch.max(new_logits, dim=1)
 
             loss = F.cross_entropy(new_logits, new_labels)
 

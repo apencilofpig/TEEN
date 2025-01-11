@@ -13,6 +13,7 @@ class MYNET(nn.Module):
         super().__init__()
 
         self.mode = mode
+        self.is_multi = False
         self.args = args
         if self.args.dataset in ['cifar100','manyshotcifar']:
             self.encoder = resnet20()
@@ -49,7 +50,7 @@ class MYNET(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.fc = nn.Linear(self.num_features, self.args.num_classes, bias=False)
-        self.centers = nn.Parameter(torch.randn(args.multi_proto_num, self.num_features)).to('cuda')
+        self.centers = nn.Linear(self.num_features, args.multi_proto_num, bias=False)
         self.dropout_fn = nn.Dropout(0.3)
 
     def forward_metric(self, x):
@@ -67,6 +68,32 @@ class MYNET(nn.Module):
             x = self.fc(x_feature)
             # x = self.args.temperature * x
         return x_feature, x
+    
+    def forward_metric_multi(self, x):
+        x_feature = self.encode(x)
+        if 'cos' in self.mode:
+            if self.dropout_fn is None:
+                x = F.linear(F.normalize(x_feature, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
+                multi_x = F.linear(F.normalize(x_feature, p=2, dim=-1), F.normalize(self.centers.weight, p=2, dim=-1))
+            else:
+                x = F.linear(self.dropout_fn(F.normalize(x_feature, p=2, dim=-1)), F.normalize(self.fc.weight, p=2, dim=-1))
+                multi_x = F.linear(self.dropout_fn(F.normalize(x_feature, p=2, dim=-1)), F.normalize(self.centers.weight, p=2, dim=-1))
+
+            # x = F.linear(F.normalize(x, p=2, dim=-1), F.normalize(self.fc.weight, p=2, dim=-1))
+            x = self.args.temperature * x
+            multi_x = self.args.temperature * multi_x
+
+        elif 'dot' in self.mode:
+            x = self.fc(x_feature)
+            multi_x = self.centers(x_feature)
+            # x = self.args.temperature * x
+
+        # x_first_column = x[:, 0].unsqueeze(1)  # 形状为 [batch_size, 1]
+        # # 合并 multi_x 和 x_first_column
+        # merged_tensor = torch.cat((multi_x, x_first_column), dim=1)
+        max_values, _ = torch.max(multi_x, dim=1)
+        x[:, 0] = max_values
+        return x_feature, x
 
     def encode(self, x):
         x = self.encoder(x)
@@ -74,9 +101,12 @@ class MYNET(nn.Module):
         x = x.squeeze(-1).squeeze(-1)
         return x
 
-    def forward(self, input):
+    def forward(self, input, is_multi=False):
         if self.mode != 'encoder':
-            x_feature, input = self.forward_metric(input)
+            if self.is_multi:
+                x_feature, input = self.forward_metric_multi(input)
+            else:
+                x_feature, input = self.forward_metric(input)
             return x_feature, input
         elif self.mode == 'encoder':
             input = self.encode(input)
@@ -139,7 +169,6 @@ class MYNET(nn.Module):
 
     def update_fc_ft(self,new_fc,data_imgs,label,session, class_list=None):
         new_fc=new_fc.clone().detach()
-        print(new_fc)
         new_fc.requires_grad=True
         optimized_parameters = [{'params': new_fc}]
         optimizer = torch.optim.SGD(optimized_parameters,lr=self.args.lr_new, momentum=0.9, dampening=0.9, weight_decay=0)
@@ -154,7 +183,6 @@ class MYNET(nn.Module):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-        print(new_fc)
         self.fc.weight.data[self.args.base_class + self.args.way * (session - 1):self.args.base_class + self.args.way * session, :].copy_(new_fc.data)
 
 

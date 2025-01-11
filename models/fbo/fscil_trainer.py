@@ -58,6 +58,8 @@ class FSCILTrainer(Trainer):
                         writer.add_scalar("Loss/train", tl, epoch)
                         writer.flush()
                         tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list, centers=self.model.centers)
+                        # print(self.model.centers.weight)
+                        # print(self.model.fc.weight)
 
                         # save better model
                         if (tsa * 100) >= self.trlog['max_acc'][session]:
@@ -97,6 +99,9 @@ class FSCILTrainer(Trainer):
                 if not args.not_data_init:
                     self.model.load_state_dict(self.best_model_dict)
                     self.model = replace_base_fc(train_set, testloader.dataset.transform, self.model, args)
+                    self.model.mode = 'avg_cos'
+                    avg_features = torch.tensor(extract_features_and_cluster(trainloader, self.model, 0, args.multi_proto_num), dtype=torch.float32, device='cuda')
+                    self.model.centers.weight = nn.Parameter(avg_features, requires_grad=False)
                     best_model_dir = os.path.join(args.save_path, 'session' + str(session) + '_max_acc.pth')
                     logging.info('Replace the fc with average embedding, and save it to :%s' % best_model_dir)
                     self.best_model_dict = deepcopy(self.model.state_dict())
@@ -113,11 +118,15 @@ class FSCILTrainer(Trainer):
             else:  
                 logging.info("training session: [%d]" % session)
                 self.model.mode = self.args.new_mode
+                self.model.is_multi = True
                 self.model.eval()
                 trainloader.dataset.transform = testloader.dataset.transform
                 
                 self.model.update_fc(trainloader, np.unique(train_set.targets), session)
-                
+                # print(self.model.fc.weight)
+                # print(torch.norm(self.model.fc.weight[0], p=2))
+                # print(self.model.centers.weight)
+                # print(torch.norm(self.model.centers.weight[0], p=2))
                 tsl, (seenac, unseenac, avgac) = test(self.model, testloader, 0, args, session, result_list=result_list, centers = self.model.centers)
 
                 # update results and save model

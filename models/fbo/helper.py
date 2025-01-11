@@ -14,22 +14,27 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
     # standard classification for pretrain
     tqdm_gen = tqdm(trainloader)
     if epoch == args.knn_epoch:
+        # for module in model.modules():
+        #     if hasattr(module, 'weight') and not isinstance(module, WaRPModule):
+        #         for param in module.parameters():
+        #             param.requires_grad = False
         avg_features = torch.tensor(extract_features_and_cluster(trainloader, model, 0, args.multi_proto_num), dtype=torch.float32, device='cuda')
-        with torch.no_grad():  # 禁用梯度计算，直接赋值
-            centers.copy_(avg_features)
+        model.centers.weight = nn.Parameter(avg_features, requires_grad=True)
+        model.is_multi = True
 
     for i, batch in enumerate(tqdm_gen, 1):
         data, train_label = [_.cuda() for _ in batch]
-
-        x_feature, logits = model(data)
-        logits = logits[:, :args.base_class]
         
         if epoch < args.knn_epoch:
+            x_feature, logits = model(data)
+            logits = logits[:, :args.base_class]
             total_loss = F.cross_entropy(logits, train_label)
         else:
-            multi_center_loss = MultiCenterLoss(target_class=0, centers=centers)
+            x_feature, logits = model(data, is_multi=True)
+            logits = logits[:, :args.base_class]
+            multi_center_loss = MultiCenterLoss(target_class=0, model=model)
             weight = torch.ones(16).cuda()
-            weight[0] = 0.1
+            weight[0] = 1
             loss = F.cross_entropy(logits, train_label, weight=weight)
             total_loss = loss + args.alpha1 * multi_center_loss(x_feature, train_label)
 
@@ -43,6 +48,10 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
 
         optimizer.zero_grad()
         total_loss.backward()
+        if model.is_multi == True:
+            with torch.no_grad():
+                model.centers.weight -= lrc * model.centers.weight.grad
+            model.centers.weight.grad.zero_()
         optimizer.step()
     tl = tl.item()
     ta = ta.item()
@@ -202,7 +211,7 @@ def get_accuracy_confusion_matrix(model, testloader, num_classes, save_path):
 
 def test(model, testloader, epoch, args, session, result_list=None, centers=None):
     test_class = args.base_class + session * args.way
-    print(get_accuracy_per_class(model, testloader, test_class))
+    logging.info(get_accuracy_per_class(model, testloader, test_class))
     model = model.eval()
     vl = Averager()
     va = Averager()
@@ -212,7 +221,10 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
     with torch.no_grad():
         for i, batch in enumerate(testloader, 1):
             data, test_label = [_.cuda() for _ in batch]
-            x_feature, logits = model(data)
+            if epoch < args.knn_epoch:
+                x_feature, logits = model(data)
+            else:
+                x_feature, logits = model(data, is_multi=True)
             logits = logits[:, :test_class]
             loss = F.cross_entropy(logits, test_label)
             acc = count_acc(logits, test_label)

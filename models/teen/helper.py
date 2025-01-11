@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
 
 
-def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, centers):
+def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc):
     tl = Averager()
     ta = Averager()
     model = model.train()
@@ -190,7 +190,7 @@ def get_accuracy_confusion_matrix(model, testloader, num_classes, save_path):
     return accuracy, cm
 
 
-def test(model, testloader, epoch, args, session, result_list=None, centers=None):
+def test(model, testloader, epoch, args, session, result_list=None):
     test_class = args.base_class + session * args.way
     print(get_accuracy_per_class(model, testloader, test_class))
     model = model.eval()

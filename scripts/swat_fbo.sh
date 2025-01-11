@@ -14,6 +14,6 @@ python train.py fbo \
     -gpu '0' \
     -temperature 16 \
     -multi_proto_num 3 \
-    -knn_epoch 5 \
+    -knn_epoch 70 \
     -alpha1 1 \
     -seed 3407

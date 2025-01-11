@@ -51,10 +51,10 @@ class FSCILTrainer(Trainer):
                     for epoch in range(args.epochs_base):
                         start_time = time.time()
                         
-                        tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args, self.model.fc, self.model.centers)
+                        tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args, self.model.fc)
                         writer.add_scalar("Loss/train", tl, epoch)
                         writer.flush()
-                        tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list, centers=self.model.centers)
+                        tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list)
 
                         # save better model
                         if (tsa * 100) >= self.trlog['max_acc'][session]:
