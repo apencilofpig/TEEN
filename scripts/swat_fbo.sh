@@ -13,7 +13,7 @@ python train.py fbo \
     -tmax 100 \
     -gpu '0' \
     -temperature 16 \
-    -multi_proto_num 3 \
-    -knn_epoch 70 \
+    -multi_proto_num 2 \
+    -knn_epoch 50 \
     -alpha1 1 \
-    -seed 3407
+    -seed 3414

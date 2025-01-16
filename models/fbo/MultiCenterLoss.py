@@ -16,7 +16,7 @@ class MultiCenterLoss(nn.Module):
             target_labels = train_label[mask]
 
             if 'cos' in self.model.mode:
-                if self.dropout_fn is None:
+                if self.model.dropout_fn is None:
                     new_logits = F.linear(F.normalize(target_features, p=2, dim=-1), F.normalize(self.model.centers.weight, p=2, dim=-1))
                 else:
                     new_logits = F.linear(self.model.dropout_fn(F.normalize(target_features, p=2, dim=-1)), F.normalize(self.model.centers.weight, p=2, dim=-1))
@@ -27,7 +27,13 @@ class MultiCenterLoss(nn.Module):
                 new_logits = self.model.centers(target_features)
 
             with torch.no_grad():
-                _, new_labels = torch.max(new_logits, dim=1)
+                if self.model.dropout_fn is None:
+                    new_logits2 = F.linear(F.normalize(target_features, p=2, dim=-1), F.normalize(self.model.centers.weight, p=2, dim=-1))
+                else:
+                    new_logits2 = F.linear(self.model.dropout_fn(F.normalize(target_features, p=2, dim=-1)), F.normalize(self.model.centers.weight, p=2, dim=-1))
+
+                new_logits2 = self.model.args.temperature * new_logits2
+                _, new_labels = torch.max(new_logits2, dim=1)
 
             loss = F.cross_entropy(new_logits, new_labels)
 

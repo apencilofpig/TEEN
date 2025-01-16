@@ -1,6 +1,7 @@
 import os
 import os.path as osp
 
+import logging
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -94,7 +95,7 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
     base_inputs_train, base_inputs_test, base_labels_train, base_labels_test = train_test_split(base_inputs, base_labels, test_size=0.2, random_state=3407)
 
-    print(incremental_index_train)
+    logging.info(incremental_index_train)
 
     # base_inputs_train, base_labels_train = restraint_samples_number(base_inputs_train, base_labels_train, 128)
 
@@ -106,11 +107,11 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 df = pd.read_csv('data/swat/swat_ieee754.csv')
 inputs = df.iloc[:, :-1].values
 # new_labels_map = {
-#   0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
-#   10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 
-#   18: 18, 19: 19, 20: 20, 21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 
-#   26: 34, 27: 26, 28: 31, 29: 29, 30: 27, 31: 35, 32: 32, 33: 28, 
-#   34: 33, 35: 30
+#     0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9,
+#     10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15,
+#     16: 29, 17: 22, 18: 16, 19: 25, 20: 18, 21: 35, 22: 26, 23: 24,
+#     24: 34, 25: 33, 26: 31, 27: 28, 28: 23, 29: 30, 30: 27, 31: 32,
+#     32: 17, 33: 20, 34: 21, 35: 19
 # }
 
 # labels = df.iloc[:, -1].map(new_labels_map).values

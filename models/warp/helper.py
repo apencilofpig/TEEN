@@ -82,7 +82,7 @@ def replace_base_fc(trainset, transform, model, args):
 
 def test(model, testloader, epoch, args, session):
     test_class = args.base_class + session * args.way
-    print(get_accuracy_per_class(model, testloader, test_class))
+    logging.info(get_accuracy_per_class(model, testloader, test_class))
     model = model.eval()
     vl = Averager()
     va = Averager()

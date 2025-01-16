@@ -118,44 +118,42 @@ class MYNET(nn.Module):
         elif 'cos' in self.args.new_mode:
             return self.args.temperature * F.linear(F.normalize(x, p=2, dim=-1), F.normalize(fc, p=2, dim=-1))
         
-    # def update_fc_ft(self, new_fc, data_imgs,label,session, class_list=None):
-    #     self.eval()
-    #     optimizer_embedding = torch.optim.SGD(self.encoder.parameters(), lr=self.args.lr_new, momentum=0.9)
-
-    #     with torch.enable_grad():
-    #         for epoch in range(self.args.epochs_new):
-
-
-    #             fc = self.fc.weight[:self.args.base_class + self.args.way * session, :].detach()
-    #             data = self.encode(data_imgs)
-    #             logits = self.get_logits(data, fc)
-    #             # acc = count_acc(logits, label)
-
-    #             loss = F.cross_entropy(logits, label)
-    #             optimizer_embedding.zero_grad()
-    #             loss.backward()
-
-    #             optimizer_embedding.step()
-
-    def update_fc_ft(self,new_fc,data_imgs,label,session, class_list=None):
-        new_fc=new_fc.clone().detach()
-        print(new_fc)
-        new_fc.requires_grad=True
-        optimized_parameters = [{'params': new_fc}]
-        optimizer = torch.optim.SGD(optimized_parameters,lr=self.args.lr_new, momentum=0.9, dampening=0.9, weight_decay=0)
+    def update_fc_ft(self, new_fc, data_imgs,label,session, class_list=None):
+        self.eval()
+        optimizer_embedding = torch.optim.SGD(self.parameters(), lr=self.args.lr_new, momentum=0.9)
 
         with torch.enable_grad():
             for epoch in range(self.args.epochs_new):
-                old_fc = self.fc.weight[:self.args.base_class + self.args.way * (session - 1), :].detach()
-                fc = torch.cat([old_fc, new_fc], dim=0)
+
+
+                fc = self.fc.weight[:self.args.base_class + self.args.way * session, :]
                 data = self.encode(data_imgs)
-                logits = self.get_logits(data,fc)
+                logits = self.get_logits(data, fc)
+                # acc = count_acc(logits, label)
+
                 loss = F.cross_entropy(logits, label)
-                optimizer.zero_grad()
+                optimizer_embedding.zero_grad()
                 loss.backward()
-                optimizer.step()
-        print(new_fc)
-        self.fc.weight.data[self.args.base_class + self.args.way * (session - 1):self.args.base_class + self.args.way * session, :].copy_(new_fc.data)
+
+                optimizer_embedding.step()
+
+    # def update_fc_ft(self,new_fc,data_imgs,label,session, class_list=None):
+    #     new_fc=new_fc.clone().detach()
+    #     new_fc.requires_grad=True
+    #     optimized_parameters = [{'params': new_fc}]
+    #     optimizer = torch.optim.SGD(optimized_parameters,lr=self.args.lr_new, momentum=0.9, dampening=0.9, weight_decay=0)
+
+    #     with torch.enable_grad():
+    #         for epoch in range(self.args.epochs_new):
+    #             old_fc = self.fc.weight[:self.args.base_class + self.args.way * (session - 1), :].detach()
+    #             fc = torch.cat([old_fc, new_fc], dim=0)
+    #             data = self.encode(data_imgs)
+    #             logits = self.get_logits(data,fc)
+    #             loss = F.cross_entropy(logits, label)
+    #             optimizer.zero_grad()
+    #             loss.backward()
+    #             optimizer.step()
+    #     self.fc.weight.data[self.args.base_class + self.args.way * (session - 1):self.args.base_class + self.args.way * session, :].copy_(new_fc.data)
 
 
 

@@ -14,10 +14,10 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
     # standard classification for pretrain
     tqdm_gen = tqdm(trainloader)
     if epoch == args.knn_epoch:
-        # for module in model.modules():
-        #     if hasattr(module, 'weight') and not isinstance(module, WaRPModule):
-        #         for param in module.parameters():
-        #             param.requires_grad = False
+        for module in model.modules():
+            if hasattr(module, 'weight') and not isinstance(module, WaRPModule):
+                for param in module.parameters():
+                    param.requires_grad = False
         avg_features = torch.tensor(extract_features_and_cluster(trainloader, model, 0, args.multi_proto_num), dtype=torch.float32, device='cuda')
         model.centers.weight = nn.Parameter(avg_features, requires_grad=True)
         model.is_multi = True
@@ -34,7 +34,7 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
             logits = logits[:, :args.base_class]
             multi_center_loss = MultiCenterLoss(target_class=0, model=model)
             weight = torch.ones(16).cuda()
-            weight[0] = 1
+            weight[0] = 0.1
             loss = F.cross_entropy(logits, train_label, weight=weight)
             total_loss = loss + args.alpha1 * multi_center_loss(x_feature, train_label)
 
@@ -215,6 +215,10 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
     model = model.eval()
     vl = Averager()
     va = Averager()
+    va_base = Averager()
+    va_new = Averager()
+    va_base_given_new = Averager()
+    va_new_given_base = Averager()
     va5= Averager()
     lgt=torch.tensor([])
     lbs=torch.tensor([])
@@ -230,6 +234,21 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
             acc = count_acc(logits, test_label)
             top5acc = count_acc_topk(logits, test_label)
 
+            base_idxs = test_label < args.base_class
+            if torch.any(base_idxs):
+                acc_base = count_acc(logits[base_idxs, :args.base_class], test_label[base_idxs]) # 只预测基类的情况下基类预测正确的数量
+                acc_base_given_new = count_acc(logits[base_idxs, :], test_label[base_idxs]) # 给出新类的情况下基类预测正确的数量
+                va_base.add(acc_base) # 不断计算平均准确率
+                va_base_given_new.add(acc_base_given_new)
+
+
+            new_idxs = test_label >= args.base_class
+            if torch.any(new_idxs):
+                acc_new = count_acc(logits[new_idxs, args.base_class:], test_label[new_idxs] - args.base_class) # 只预测新类的情况下新类预测正确的数量
+                acc_new_given_base = count_acc(logits[new_idxs, :], test_label[new_idxs]) # 给出基类的情况下基类预测正确的数量
+                va_new.add(acc_new)
+                va_new_given_base.add(acc_new_given_base)
+
             vl.add(loss.item())
             va.add(acc)
             va5.add(top5acc)
@@ -239,6 +258,10 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
         vl = vl.item()
         va = va.item()
         va5= va5.item()
+        va_base = va_base.item()
+        va_new = va_new.item()
+        va_base_given_new = va_base_given_new.item()
+        va_new_given_base = va_new_given_base.item()
         
         logging.info('epo {}, test, loss={:.4f} acc={:.4f}, acc@5={:.4f}'.format(epoch, vl, va, va5))
 
@@ -252,7 +275,7 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
             seenac = np.mean(perclassacc[:args.base_class])
             unseenac = np.mean(perclassacc[args.base_class:])
             
-            result_list.append(f"Seen Acc:{seenac}  Unseen Acc:{unseenac}")
-            return vl, (seenac, unseenac, va)
+            result_list.append(f"Seen Acc:{va_base_given_new}  Unseen Acc:{va_new_given_base}")
+            return vl, (va_base_given_new, va_new_given_base, va)
         else:
             return vl, va

@@ -6,7 +6,7 @@ python train.py warp \
     -base_mode 'ft_dot' \
     -new_mode 'ft_cos' \
     -lr_base 0.1 \
-    -lr_new 0.01 \
+    -lr_new 0.001 \
     -decay 0.0005 \
     -epochs_base 0 \
     -epochs_new 30 \
@@ -16,5 +16,5 @@ python train.py warp \
     -tmax 100 \
     -gpu '0' \
     -temperature 16 \
-    -fraction_to_keep 0.7 \
+    -fraction_to_keep 0 \
     -seed 3407
