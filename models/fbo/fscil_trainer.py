@@ -43,7 +43,7 @@ class FSCILTrainer(Trainer):
         result_list = [args]
         for session in range(args.start_session, args.sessions):
             train_set, trainloader, testloader = get_dataloader(args, session)
-            self.model.load_state_dict(self.best_model_dict)
+            self.model.load_state_dict(self.best_model_dict, strict=False)
             if session == 0:  # load base class train img label
                 if not args.only_do_incre:
                     logging.info(f'new classes for this session:{np.unique(train_set.targets)}')
@@ -97,7 +97,7 @@ class FSCILTrainer(Trainer):
                     assert args.model_dir is not None
 
                 if not args.not_data_init:
-                    self.model.load_state_dict(self.best_model_dict)
+                    self.model.load_state_dict(self.best_model_dict, strict=False)
                     self.model = replace_base_fc(train_set, testloader.dataset.transform, self.model, args)
                     self.model.mode = 'avg_cos'
                     avg_features = torch.tensor(extract_features_and_cluster(trainloader, self.model, 0, args.multi_proto_num), dtype=torch.float32, device='cuda')

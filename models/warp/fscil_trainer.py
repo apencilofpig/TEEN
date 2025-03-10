@@ -171,6 +171,7 @@ class FSCILTrainer(Trainer):
                 # if session > 0:
                 #     compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
 
+        get_accuracy_confusion_matrix(self.model, testloader, args.num_classes, os.path.join(args.save_path, 'confusion_matrix.png'))
         embedding_list, label_list = get_features(testloader, testloader.dataset.transform, self.model)
         save_s_tne(embedding_list.numpy(), label_list.numpy(), args.save_path)
 
