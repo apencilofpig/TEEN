@@ -1,8 +1,8 @@
 python train.py fbo \
     -project fbo \
-    -dataset swat \
-    -dataroot 'TEEN/data/swat' \
-    -model_dir 'checkpoint/swat/fbo/ft_dot-avg_cos-data_init-start_0/0111-13-12-36-379-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-multi_proto_num_3-knn_epoch_50-alpha1_1/session0_max_acc.pth' \
+    -dataset wadi \
+    -dataroot 'TEEN/data/wadi' \
+    -model_dir 'checkpoint/wadi/fbo/ft_dot-avg_cos-data_init-start_0/0312-15-54-13-550-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-multi_proto_num_3-knn_epoch_50-alpha1_1/session0_max_acc.pth' \
     -base_mode 'ft_cos' \
     -new_mode 'avg_cos' \
     -lr_base 0.1 \
@@ -15,6 +15,6 @@ python train.py fbo \
     -gpu '0' \
     -temperature 16 \
     -multi_proto_num 3 \
-    -knn_epoch 50 \
+    -knn_epoch 2 \
     -alpha1 1 \
     -seed 3407

@@ -119,12 +119,16 @@ class FSCILTrainer(Trainer):
                 else:
                     self.model.update_fc(trainloader, np.unique(train_set.targets), session)
                 
-                tsl, (seenac, unseenac, avgac) = test(self.model, testloader, 0, args, session, result_list=result_list)
+                tsl, (seenac, unseenac, avgac, vacc, vprecision, vrecall, vf1) = test(self.model, testloader, 0, args, session, result_list=result_list)
 
                 # update results and save model
                 self.trlog['seen_acc'].append(float('%.3f' % (seenac * 100)))
                 self.trlog['unseen_acc'].append(float('%.3f' % (unseenac * 100)))
                 self.trlog['max_acc'][session] = float('%.3f' % (avgac * 100))
+                self.trlog['accuracy'][session] = float('%.3f' % (vacc * 100))
+                self.trlog['precision'][session] = float('%.3f' % (vprecision * 100))
+                self.trlog['recall'][session] = float('%.3f' % (vrecall * 100))
+                self.trlog['f1'][session] = float('%.3f' % (vf1 * 100))
                 self.best_model_dict = deepcopy(self.model.state_dict())
                 
                 logging.info(f"Session {session} ==> Seen Acc:{self.trlog['seen_acc'][-1]} "

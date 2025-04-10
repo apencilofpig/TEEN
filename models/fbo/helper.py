@@ -5,6 +5,8 @@ import torch.nn.functional as F
 import logging
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
 
 
 def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, centers):
@@ -14,14 +16,17 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
     # standard classification for pretrain
     tqdm_gen = tqdm(trainloader)
     if epoch == args.knn_epoch:
-        for module in model.modules():
-            if hasattr(module, 'weight') and not isinstance(module, WaRPModule):
-                for param in module.parameters():
-                    param.requires_grad = False
+        # model.mode = 'ft_cos'
+        # for module in model.modules():
+        #     if hasattr(module, 'weight') and not isinstance(module, WaRPModule):
+        #         for param in module.parameters():
+        #             param.requires_grad = False
         avg_features = torch.tensor(extract_features_and_cluster(trainloader, model, 0, args.multi_proto_num), dtype=torch.float32, device='cuda')
-        model.centers.weight = nn.Parameter(avg_features, requires_grad=True)
+        with torch.no_grad():
+            model.centers.weight.copy_(avg_features)
+            model.centers.weight.requires_grad_(True)
         model.is_multi = True
-
+    print(model.centers.weight)
     for i, batch in enumerate(tqdm_gen, 1):
         data, train_label = [_.cuda() for _ in batch]
         
@@ -33,8 +38,8 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
             x_feature, logits = model(data, is_multi=True)
             logits = logits[:, :args.base_class]
             multi_center_loss = MultiCenterLoss(target_class=0, model=model)
-            weight = torch.ones(16).cuda()
-            weight[0] = 0.1
+            weight = torch.ones(args.base_class).cuda()
+            # weight[0] = 0.1
             loss = F.cross_entropy(logits, train_label, weight=weight)
             total_loss = loss + args.alpha1 * multi_center_loss(x_feature, train_label)
 
@@ -48,10 +53,10 @@ def base_train(model, trainloader, optimizer, scheduler, epoch, args, fc, center
 
         optimizer.zero_grad()
         total_loss.backward()
-        if model.is_multi == True:
-            with torch.no_grad():
-                model.centers.weight -= lrc * model.centers.weight.grad
-            model.centers.weight.grad.zero_()
+        # if model.is_multi == True:
+        #     with torch.no_grad():
+        #         model.centers.weight -= lrc * model.centers.weight.grad
+        #     model.centers.weight.grad.zero_()
         optimizer.step()
     tl = tl.item()
     ta = ta.item()
@@ -220,8 +225,12 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
     va_base_given_new = Averager()
     va_new_given_base = Averager()
     va5= Averager()
-    lgt=torch.tensor([])
-    lbs=torch.tensor([])
+    vacc = Averager()  # 准确率平均
+    vprecision = Averager()  # 精确率平均
+    vrecall = Averager()  # 召回率平均
+    vf1 = Averager()  # F1平均
+    lgt=torch.tensor([])  # logits
+    lbs=torch.tensor([])  # labels
     with torch.no_grad():
         for i, batch in enumerate(testloader, 1):
             data, test_label = [_.cuda() for _ in batch]
@@ -249,6 +258,17 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
                 va_new.add(acc_new)
                 va_new_given_base.add(acc_new_given_base)
 
+            labels = test_label.cpu().numpy()
+            _, preds = torch.max(logits, 1)
+            preds = preds.cpu().numpy()
+
+            # logging.info(labels)
+            # logging.info(preds)
+            vacc.add(accuracy_score(labels, preds))
+            vprecision.add(precision_score(labels, preds, average='macro', zero_division=0))
+            vrecall.add(recall_score(labels, preds, average='macro', zero_division=0))
+            vf1.add(f1_score(labels, preds, average='macro', zero_division=0))
+
             vl.add(loss.item())
             va.add(acc)
             va5.add(top5acc)
@@ -262,8 +282,12 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
         va_new = va_new.item()
         va_base_given_new = va_base_given_new.item()
         va_new_given_base = va_new_given_base.item()
+        vacc = vacc.item()
+        vprecision = vprecision.item()
+        vrecall = vrecall.item()
+        vf1 = vf1.item()
         
-        logging.info('epo {}, test, loss={:.4f} acc={:.4f}, acc@5={:.4f}'.format(epoch, vl, va, va5))
+        logging.info('epo {}, test, loss={:.4f} acc={:.4f}, acc@5={:.4f}, accuracy={:.4f}, precision={:.4f}, recall={:.4f}, f1={:.4f}'.format(epoch, vl, va, va5, vacc, vprecision, vrecall, vf1))
 
         lgt=lgt.view(-1, test_class)
         lbs=lbs.view(-1)
@@ -276,6 +300,6 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
             unseenac = np.mean(perclassacc[args.base_class:])
             
             result_list.append(f"Seen Acc:{va_base_given_new}  Unseen Acc:{va_new_given_base}")
-            return vl, (va_base_given_new, va_new_given_base, va)
+            return vl, (va_base_given_new, va_new_given_base, va, vacc, vprecision, vrecall, vf1)
         else:
             return vl, va

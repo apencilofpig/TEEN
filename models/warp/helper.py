@@ -5,6 +5,8 @@ from .Network import MYNET
 from utils import *
 from tqdm import tqdm
 import torch.nn.functional as F
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
 
 
 def base_train(model, trainloader, optimizer, scheduler, epoch, args):
@@ -90,6 +92,10 @@ def test(model, testloader, epoch, args, session):
     va_new = Averager()
     va_base_given_new = Averager()
     va_new_given_base = Averager()
+    vacc = Averager()  # 准确率平均
+    vprecision = Averager()  # 精确率平均
+    vrecall = Averager()  # 召回率平均
+    vf1 = Averager()  # F1平均
 
     with torch.no_grad():
         tqdm_gen = tqdm(testloader)
@@ -115,6 +121,15 @@ def test(model, testloader, epoch, args, session):
                 va_new.add(acc_new)
                 va_new_given_base.add(acc_new_given_base)
 
+            labels = test_label.cpu().numpy()
+            _, preds = torch.max(logits, 1)
+            preds = preds.cpu().numpy()
+
+            vacc.add(accuracy_score(labels, preds))
+            vprecision.add(precision_score(labels, preds, average='macro', zero_division=0))
+            vrecall.add(recall_score(labels, preds, average='macro', zero_division=0))
+            vf1.add(f1_score(labels, preds, average='macro', zero_division=0))
+
             vl.add(loss.item())
             va.add(acc)
 
@@ -125,7 +140,11 @@ def test(model, testloader, epoch, args, session):
         va_new = va_new.item()
         va_base_given_new = va_base_given_new.item()
         va_new_given_base = va_new_given_base.item()
-    logging.info('epo {}, test, loss={:.4f} acc={:.4f}'.format(epoch, vl, va))
+        vacc = vacc.item()
+        vprecision = vprecision.item()
+        vrecall = vrecall.item()
+        vf1 = vf1.item()
+    logging.info('epo {}, test, loss={:.4f} acc={:.4f}, accuracy={:.4f}, precision={:.4f}, recall={:.4f}, f1={:.4f}'.format(epoch, vl, va, vacc, vprecision, vrecall, vf1))
     logging.info('base only accuracy: {:.4f}, new only accuracy: {:.4f}'.format(va_base, va_new))
     logging.info('base acc given new : {:.4f}'.format(va_base_given_new))
     logging.info('new acc given base : {:.4f}'.format(va_new_given_base))
@@ -133,7 +152,10 @@ def test(model, testloader, epoch, args, session):
     logs = dict(num_session=session + 1, acc=va, base_acc=va_base, new_acc=va_new, base_acc_given_new=va_base_given_new,
                 new_acc_given_base=va_new_given_base)
 
-    return vl, va, logs
+    if session > 0:
+        return vl, va, vacc, vprecision, vrecall, vf1, logs
+    else:
+        return vl, va, logs
 
 import torch
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay

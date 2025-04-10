@@ -28,6 +28,10 @@ class Trainer(object, metaclass=abc.ABCMeta):
         self.trlog['test_acc'] = []
         self.trlog['max_acc_epoch'] = 0
         self.trlog['max_acc'] = [0.0] * self.args.sessions
+        self.trlog['accuracy'] = [0.0] * self.args.sessions
+        self.trlog['precision'] = [0.0] * self.args.sessions
+        self.trlog['recall'] = [0.0] * self.args.sessions
+        self.trlog['f1'] = [0.0] * self.args.sessions
 
         self.trlog['seen_acc'] = []
         self.trlog['unseen_acc'] = []

@@ -12,7 +12,7 @@ def get_command_line_parser():
     # about dataset and network
     parser.add_argument('-project', type=str, default='base', choices=['teen', 'warp', 'fbo'])
     parser.add_argument('-dataset', type=str, default='cifar100',
-                        choices=['mini_imagenet', 'cub200', 'cifar100', 'swat', 'wadi'])
+                        choices=['mini_imagenet', 'cub200', 'cifar100', 'swat', 'wadi', 'hai'])
     parser.add_argument('-dataroot', type=str, default='')
     parser.add_argument('-temperature', type=float, default=16)
     parser.add_argument('-feat_norm', action='store_true', help='If True, normalize the feature.')
@@ -78,7 +78,7 @@ def add_commond_line_parser(params):
         # multi-proto training
         parser.add_argument('-multi_proto_num', type=int, default=3)
         parser.add_argument('-knn_epoch', type=int, default=10)
-        parser.add_argument('-alpha1', type=int, default=1)
+        parser.add_argument('-alpha1', type=float, default=1)
         args = parser.parse_args(params[2:])
         return args
     else:

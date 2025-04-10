@@ -226,6 +226,10 @@ def postprocess_results(result_list, trlog):
         logging.info(f"Unseen acc: {trlog['unseen_acc']}")
         logging.info(f"Seen acc: {trlog['seen_acc']}")
         logging.info(f"Harmonic mean: {hmeans}")
+        logging.info(f"accuracy: {trlog['accuracy']}")
+        logging.info(f"precision: {trlog['precision']}")        
+        logging.info(f"recall: {trlog['recall']}")
+        logging.info(f"f1: {trlog['f1']}")
         return result_list, hmeans
 
 def save_result(args, trlog, hmeans, **kwargs):

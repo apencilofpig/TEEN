@@ -9,11 +9,11 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-base_class = 8
-num_classes= 14
-way = 1
+base_class = 39
+num_classes= 59
+way = 2
 shot = 5
-sessions = 7
+sessions = 11
 
 def restraint_samples_number(inputs, labels, max_class_item):
     # 统计每个类的样本数量
@@ -98,7 +98,7 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 
-df = pd.read_csv('data/wadi/wadi_ieee754.csv')
+df = pd.read_csv('data/hai/hai_ieee754.csv')
 inputs = df.iloc[:, :-1].values
 labels = (df.iloc[:, -1].values)
 # inputs = inputs / 256.0
@@ -108,7 +108,7 @@ inputs = inputs.reshape(inputs.shape[0], 1, -1)
 base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, base_class, num_classes, shot)
 
 
-class Wadi(Dataset):
+class HAI(Dataset):
 
     def __init__(self, root, train=True, transform=None,
                  index_path=None, index=None, base_sess=None):

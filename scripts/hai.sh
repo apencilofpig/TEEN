@@ -1,13 +1,12 @@
 python train.py teen \
     -project teen \
-    -dataset swat \
-    -dataroot 'TEEN/data/swat' \
-    -model_dir 'checkpoint/swat/teen/ft_dot-avg_cos-data_init-start_0/0109-14-31-44-458-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-tw_16.0-0.1-hard_proto/session0_max_acc.pth' \
-    -base_mode 'ft_cos' \
+    -dataset hai \
+    -dataroot 'TEEN/data/hai' \
+    -base_mode 'ft_dot' \
     -new_mode 'avg_cos' \
     -lr_base 0.1 \
     -decay 0.0005 \
-    -epochs_base 0 \
+    -epochs_base 100 \
     -batch_size_base 128 \
     -test_batch_size 128 \
     -schedule Cosine \

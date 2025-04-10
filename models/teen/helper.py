@@ -127,6 +127,37 @@ def get_accuracy_per_class(model, testloader, num_classes):
     acc_per_class = [correct / total if total != 0 else 0 for correct, total in zip(correct_per_class, total_per_class)]
     return acc_per_class
 
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+def get_metrics(model, testloader, num_classes):
+    model.eval()
+    with torch.no_grad():
+        for inputs, labels in testloader:
+            if torch.cuda.is_available():
+                inputs = inputs.cuda()
+                labels = labels.cuda()
+
+            _, logits = model(inputs)
+            logits = logits[:, :num_classes]
+            _, preds = torch.max(logits, 1)
+
+        logging.info(count_acc(preds, labels))
+        
+        labels = labels.cpu().numpy()
+        preds = preds.cpu().numpy()
+        # 计算准确率（多分类任务中直接使用）
+        accuracy = accuracy_score(labels, preds)
+
+        # 计算精确率（多分类任务中需要指定 average 参数）
+        precision = precision_score(labels, preds, average='macro')  # 宏平均
+
+        # 计算召回率（多分类任务中需要指定 average 参数）
+        recall = recall_score(labels, preds, average='macro')  
+
+        # 计算 F1 分数（多分类任务中需要指定 average 参数）
+        f1 = f1_score(labels, preds, average='macro')  
+
+        logging.info(f'Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}, F1 Score: {f1}')
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
@@ -201,8 +232,12 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
     va_base_given_new = Averager()
     va_new_given_base = Averager()
     va5= Averager()
-    lgt=torch.tensor([])
-    lbs=torch.tensor([])
+    vacc = Averager()  # 准确率平均
+    vprecision = Averager()  # 精确率平均
+    vrecall = Averager()  # 召回率平均
+    vf1 = Averager()  # F1平均
+    lgt=torch.tensor([])  # logits
+    lbs=torch.tensor([])  # labels
     with torch.no_grad():
         for i, batch in enumerate(testloader, 1):
             data, test_label = [_.cuda() for _ in batch]
@@ -227,6 +262,17 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
                 va_new.add(acc_new)
                 va_new_given_base.add(acc_new_given_base)
 
+            labels = test_label.cpu().numpy()
+            _, preds = torch.max(logits, 1)
+            preds = preds.cpu().numpy()
+
+            # logging.info(labels)
+            # logging.info(preds)
+            vacc.add(accuracy_score(labels, preds))
+            vprecision.add(precision_score(labels, preds, average='macro', zero_division=0))
+            vrecall.add(recall_score(labels, preds, average='macro', zero_division=0))
+            vf1.add(f1_score(labels, preds, average='macro', zero_division=0))
+
             vl.add(loss.item())
             va.add(acc)
             va5.add(top5acc)
@@ -240,8 +286,12 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
         va_new = va_new.item()
         va_base_given_new = va_base_given_new.item()
         va_new_given_base = va_new_given_base.item()
+        vacc = vacc.item()
+        vprecision = vprecision.item()
+        vrecall = vrecall.item()
+        vf1 = vf1.item()
         
-        logging.info('epo {}, test, loss={:.4f} acc={:.4f}, acc@5={:.4f}'.format(epoch, vl, va, va5))
+        logging.info('epo {}, test, loss={:.4f} acc={:.4f}, acc@5={:.4f}, accuracy={:.4f}, precision={:.4f}, recall={:.4f}, f1={:.4f}'.format(epoch, vl, va, va5, vacc, vprecision, vrecall, vf1))
 
         lgt=lgt.view(-1, test_class)
         lbs=lbs.view(-1)
@@ -254,6 +304,6 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
             unseenac = np.mean(perclassacc[args.base_class:])
             
             result_list.append(f"Seen Acc:{va_base_given_new}  Unseen Acc:{va_new_given_base}")
-            return vl, (va_base_given_new, va_new_given_base, va)
+            return vl, (va_base_given_new, va_new_given_base, va, vacc, vprecision, vrecall, vf1)
         else:
             return vl, va

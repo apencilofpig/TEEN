@@ -24,7 +24,7 @@ class MYNET(nn.Module):
         if self.args.dataset in ['cub200','manyshotcub']:
             self.encoder = resnet18(True, args)  # pretrained=True follow TOPIC, models for cub is imagenet pre-trained. https://github.com/xyutao/fscil/issues/11#issuecomment-687548790
             self.num_features = 512
-        if self.args.dataset in ['swat', 'wadi']:
+        if self.args.dataset in ['swat', 'wadi', 'hai']:
             # self.encoder = nn.Sequential(
             #     nn.Conv2d(1, 64, 3),
             #     nn.BatchNorm2d(64),

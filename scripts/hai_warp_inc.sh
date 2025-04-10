@@ -1,8 +1,8 @@
 python train.py warp \
     -project warp \
-    -dataset swat \
-    -dataroot 'TEEN/data/swat' \
-    -model_dir 'checkpoint/swat/teen/ft_dot-avg_cos-data_init-start_0/0109-14-31-44-458-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-tw_16.0-0.1-hard_proto/session0_max_acc.pth' \
+    -dataset hai \
+    -dataroot 'TEEN/data/hai' \
+    -model_dir 'checkpoint/hai/teen/ft_dot-avg_cos-data_init-start_0/0311-17-20-50-647-Epo_100-Bs_128-sgd-Lr_0.1-decay0.0005-Mom_0.9-Max_100-NormF-T_16.00-tw_16.0-0.1-hard_proto/session0_max_acc.pth' \
     -base_mode 'ft_dot' \
     -new_mode 'ft_cos' \
     -lr_base 0.1 \
@@ -16,5 +16,5 @@ python train.py warp \
     -tmax 100 \
     -gpu '0' \
     -temperature 16 \
-    -fraction_to_keep 0.4 \
-    -seed 3408
+    -fraction_to_keep 0.2 \
+    -seed 3407

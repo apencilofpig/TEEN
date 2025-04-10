@@ -154,12 +154,16 @@ class FSCILTrainer(Trainer):
                 if 'ft' in args.new_mode:
                     restore_weight(self.model)  # 恢复特征空间
                     self.val_model.load_state_dict(deepcopy(self.model.state_dict()), strict=False)
-                    tsl, tsa, logs = test(self.val_model, testloader, 0, args, session)
+                    tsl, tsa, vacc, vprecision, vrecall, vf1, logs = test(self.val_model, testloader, 0, args, session)
                 else:
-                    tsl, tsa, logs = test(self.model, testloader, 0, args, session)
+                    tsl, tsa, vacc, vprecision, vrecall, vf1, logs = test(self.model, testloader, 0, args, session)
 
                 # save model
                 self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
+                self.trlog['accuracy'][session] = float('%.3f' % (vacc * 100))
+                self.trlog['precision'][session] = float('%.3f' % (vprecision * 100))
+                self.trlog['recall'][session] = float('%.3f' % (vrecall * 100))
+                self.trlog['f1'][session] = float('%.3f' % (vf1 * 100))
                 save_model_dir = os.path.join(args.save_path, 'session' + str(session) + '_max_acc.pth')
                 self.best_model_dict = deepcopy(self.model.state_dict())
                 logging.info('Saving model to :%s' % save_model_dir)
@@ -178,6 +182,10 @@ class FSCILTrainer(Trainer):
         result_list.append('Base Session Best Epoch {}\n'.format(self.trlog['max_acc_epoch']))
         result_list.append(self.trlog['max_acc'])
         logging.info(self.trlog['max_acc'])
+        logging.info(f"accuracy: {self.trlog['accuracy']}")
+        logging.info(f"precision: {self.trlog['precision']}")        
+        logging.info(f"recall: {self.trlog['recall']}")
+        logging.info(f"f1: {self.trlog['f1']}")
         save_list_to_txt(os.path.join(args.save_path, 'results.txt'), result_list)
 
         t_end_time = time.time()
