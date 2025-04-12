@@ -93,8 +93,8 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
     # base_inputs_train, base_labels_train = restraint_samples_number(base_inputs_train, base_labels_train, 128)
 
-    incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 128)
-    base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 128)
+    incremental_inputs_test, incremental_labels_test = restraint_samples_number(incremental_inputs_test, incremental_labels_test, 256)
+    base_inputs_test, base_labels_test = restraint_samples_number(base_inputs_test, base_labels_test, 256)
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 

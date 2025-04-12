@@ -94,7 +94,7 @@ def get_base_dataloader(args):
     trainloader = torch.utils.data.DataLoader(dataset=trainset, batch_size=args.batch_size_base, shuffle=True,
                                               num_workers=args.num_workers)
     testloader = torch.utils.data.DataLoader(
-        dataset=testset, batch_size=args.test_batch_size, shuffle=False, num_workers=args.num_workers)
+        dataset=testset, batch_size=args.test_batch_size, shuffle=True, num_workers=args.num_workers)
 
     return trainset, trainloader, testloader
 
@@ -183,7 +183,7 @@ def get_new_dataloader(args,session):
         testset = args.Dataset.HAI(root=args.dataroot, train=False,
                                       index=class_new)
 
-    testloader = torch.utils.data.DataLoader(dataset=testset, batch_size=args.test_batch_size, shuffle=False,
+    testloader = torch.utils.data.DataLoader(dataset=testset, batch_size=args.test_batch_size, shuffle=True,
                                              num_workers=args.num_workers)
 
     return trainset, trainloader, testloader

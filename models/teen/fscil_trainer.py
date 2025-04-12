@@ -54,11 +54,15 @@ class FSCILTrainer(Trainer):
                         tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args, self.model.fc)
                         writer.add_scalar("Loss/train", tl, epoch)
                         writer.flush()
-                        tsl, tsa = test(self.model, testloader, epoch, args, session, result_list=result_list)
+                        tsl, tsa, vacc, vprecision, vrecall, vf1 = test(self.model, testloader, epoch, args, session, result_list=result_list)
 
                         # save better model
                         if (tsa * 100) >= self.trlog['max_acc'][session]:
                             self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
+                            self.trlog['accuracy'][session] = float('%.2f' % (vacc * 100))
+                            self.trlog['precision'][session] = float('%.2f' % (vprecision * 100))
+                            self.trlog['recall'][session] = float('%.2f' % (vrecall * 100))
+                            self.trlog['f1'][session] = float('%.2f' % (vf1 * 100))
                             self.trlog['max_acc_epoch'] = epoch
                             save_model_dir = os.path.join(args.save_path, 'session' + str(session) + '_max_acc.pth')
                             torch.save(dict(params=self.model.state_dict()), save_model_dir)
@@ -100,7 +104,11 @@ class FSCILTrainer(Trainer):
                     torch.save(dict(params=self.model.state_dict()), best_model_dir)
 
                     self.model.mode = 'avg_cos'
-                    tsl, tsa = test(self.model, testloader, 0, args, session, result_list=result_list)
+                    tsl, tsa, vacc, vprecision, vrecall, vf1 = test(self.model, testloader, 0, args, session, result_list=result_list)
+                    self.trlog['accuracy'][session] = float('%.2f' % (vacc * 100))
+                    self.trlog['precision'][session] = float('%.2f' % (vprecision * 100))
+                    self.trlog['recall'][session] = float('%.2f' % (vrecall * 100))
+                    self.trlog['f1'][session] = float('%.2f' % (vf1 * 100))
                     if (tsa * 100) >= self.trlog['max_acc'][session]:
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
                         logging.info('The new best test acc of base session={:.3f}'.format(
@@ -125,10 +133,10 @@ class FSCILTrainer(Trainer):
                 self.trlog['seen_acc'].append(float('%.3f' % (seenac * 100)))
                 self.trlog['unseen_acc'].append(float('%.3f' % (unseenac * 100)))
                 self.trlog['max_acc'][session] = float('%.3f' % (avgac * 100))
-                self.trlog['accuracy'][session] = float('%.3f' % (vacc * 100))
-                self.trlog['precision'][session] = float('%.3f' % (vprecision * 100))
-                self.trlog['recall'][session] = float('%.3f' % (vrecall * 100))
-                self.trlog['f1'][session] = float('%.3f' % (vf1 * 100))
+                self.trlog['accuracy'][session] = float('%.2f' % (vacc * 100))
+                self.trlog['precision'][session] = float('%.2f' % (vprecision * 100))
+                self.trlog['recall'][session] = float('%.2f' % (vrecall * 100))
+                self.trlog['f1'][session] = float('%.2f' % (vf1 * 100))
                 self.best_model_dict = deepcopy(self.model.state_dict())
                 
                 logging.info(f"Session {session} ==> Seen Acc:{self.trlog['seen_acc'][-1]} "

@@ -230,6 +230,11 @@ def postprocess_results(result_list, trlog):
         logging.info(f"precision: {trlog['precision']}")        
         logging.info(f"recall: {trlog['recall']}")
         logging.info(f"f1: {trlog['f1']}")
+
+        logging.info(f"pd_accuracy: {trlog['accuracy'][0] - trlog['accuracy'][-1]:.2f}, " \
+                    f"pd_precision: {trlog['precision'][0] - trlog['precision'][-1]:.2f}, " \
+                    f"pd_recall: {trlog['recall'][0] - trlog['recall'][-1]:.2f}, " \
+                    f"pd_f1: {trlog['f1'][0] - trlog['f1'][-1]:.2f}")
         return result_list, hmeans
 
 def save_result(args, trlog, hmeans, **kwargs):

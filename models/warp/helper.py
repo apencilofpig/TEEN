@@ -152,10 +152,7 @@ def test(model, testloader, epoch, args, session):
     logs = dict(num_session=session + 1, acc=va, base_acc=va_base, new_acc=va_new, base_acc_given_new=va_base_given_new,
                 new_acc_given_base=va_new_given_base)
 
-    if session > 0:
-        return vl, va, vacc, vprecision, vrecall, vf1, logs
-    else:
-        return vl, va, logs
+    return vl, va, vacc, vprecision, vrecall, vf1, logs
 
 import torch
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay

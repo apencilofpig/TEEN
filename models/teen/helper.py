@@ -306,4 +306,4 @@ def test(model, testloader, epoch, args, session, result_list=None, centers=None
             result_list.append(f"Seen Acc:{va_base_given_new}  Unseen Acc:{va_new_given_base}")
             return vl, (va_base_given_new, va_new_given_base, va, vacc, vprecision, vrecall, vf1)
         else:
-            return vl, va
+            return vl, va, vacc, vprecision, vrecall, vf1

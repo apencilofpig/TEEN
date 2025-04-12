@@ -73,7 +73,7 @@ class FSCILTrainer(Trainer):
                         self.model.module.mode = args.new_mode
                         self.val_model.load_state_dict(deepcopy(self.model.state_dict()), strict=False)
                         self.val_model.module.mode = args.new_mode
-                        tsl, tsa, logs = test(self.val_model, testloader, args.epochs_base, args, session) # 测试基类的性能
+                        tsl, tsa, vacc, vprecision, vrecall, vf1, logs = test(self.val_model, testloader, args.epochs_base, args, session) # 测试基类的性能
                         switch_module(self.model) # 替换特定的卷积层
                         compute_orthonormal(args, self.model, train_set) # 计算新的正交基底
                         identify_importance(args, self.model, train_set, keep_ratio=args.fraction_to_keep)
@@ -81,8 +81,13 @@ class FSCILTrainer(Trainer):
                     else:
                         self.model = replace_base_fc(train_set, testloader.dataset.transform, self.model, args)
                         self.model.module.mode = args.new_mode
-                        tsl, tsa, logs = test(self.model, testloader, args.epochs_base, args, session)
+                        tsl, tsa, vacc, vprecision, vrecall, vf1, logs = test(self.model, testloader, args.epochs_base, args, session)
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
+
+                    self.trlog['accuracy'][session] = float('%.2f' % (vacc * 100))
+                    self.trlog['precision'][session] = float('%.2f' % (vprecision * 100))
+                    self.trlog['recall'][session] = float('%.2f' % (vrecall * 100))
+                    self.trlog['f1'][session] = float('%.2f' % (vf1 * 100))    
 
 
                 else:
@@ -91,7 +96,7 @@ class FSCILTrainer(Trainer):
                         # train base sess
                         tl, ta = base_train(self.model, trainloader, optimizer, scheduler, epoch, args)
                         # test model with all seen class
-                        tsl, tsa, logs = test(self.model, testloader, epoch, args, session)
+                        tsl, tsa, vacc, vprecision, vrecall, vf1, logs = test(self.model, testloader, epoch, args, session)
 
                         # Note that, although this code evaluates the test accuracy and save the max accuracy model,
                         # we do not use this model. We use the "last epoch" pretrained model for incremental sessions.
@@ -138,8 +143,12 @@ class FSCILTrainer(Trainer):
                         torch.save(dict(params=self.model.state_dict()), best_model_dir)
 
                         self.model.module.mode = 'avg_cos'
-                        tsl, tsa, logs = test(self.model, testloader, 0, args, session)
+                        tsl, tsa, vacc, vprecision, vrecall, vf1, logs = test(self.model, testloader, 0, args, session)
                         self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
+                        self.trlog['accuracy'][session] = float('%.2f' % (vacc * 100))
+                        self.trlog['precision'][session] = float('%.2f' % (vprecision * 100))
+                        self.trlog['recall'][session] = float('%.2f' % (vrecall * 100))
+                        self.trlog['f1'][session] = float('%.2f' % (vf1 * 100))
                         logging.info('The new best test acc of base session={:.3f}'.format(self.trlog['max_acc'][session]))
 
 
@@ -160,10 +169,10 @@ class FSCILTrainer(Trainer):
 
                 # save model
                 self.trlog['max_acc'][session] = float('%.3f' % (tsa * 100))
-                self.trlog['accuracy'][session] = float('%.3f' % (vacc * 100))
-                self.trlog['precision'][session] = float('%.3f' % (vprecision * 100))
-                self.trlog['recall'][session] = float('%.3f' % (vrecall * 100))
-                self.trlog['f1'][session] = float('%.3f' % (vf1 * 100))
+                self.trlog['accuracy'][session] = float('%.2f' % (vacc * 100))
+                self.trlog['precision'][session] = float('%.2f' % (vprecision * 100))
+                self.trlog['recall'][session] = float('%.2f' % (vrecall * 100))
+                self.trlog['f1'][session] = float('%.2f' % (vf1 * 100))
                 save_model_dir = os.path.join(args.save_path, 'session' + str(session) + '_max_acc.pth')
                 self.best_model_dict = deepcopy(self.model.state_dict())
                 logging.info('Saving model to :%s' % save_model_dir)
