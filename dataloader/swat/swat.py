@@ -106,16 +106,16 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
 df = pd.read_csv('data/swat/swat_ieee754.csv')
 inputs = df.iloc[:, :-1].values
-# new_labels_map = {
-#     0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9,
-#     10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15,
-#     16: 29, 17: 22, 18: 16, 19: 25, 20: 18, 21: 35, 22: 26, 23: 24,
-#     24: 34, 25: 33, 26: 31, 27: 28, 28: 23, 29: 30, 30: 27, 31: 32,
-#     32: 17, 33: 20, 34: 21, 35: 19
-# }
+new_labels_map = {
+  0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
+  10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 
+  18: 18, 19: 19, 20: 20, 21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 
+  26: 34, 27: 26, 28: 31, 29: 29, 30: 27, 31: 35, 32: 32, 33: 28, 
+  34: 33, 35: 30
+}
 
-# labels = df.iloc[:, -1].map(new_labels_map).values
-labels = df.iloc[:, -1].values
+labels = df.iloc[:, -1].map(new_labels_map).values
+# labels = df.iloc[:, -1].values
 # inputs = inputs / 256.0
 # inputs = np.pad(inputs, ((0,0), (0,144-126)), mode='constant', constant_values=0)
 # inputs = inputs.reshape(inputs.shape[0], 1, 12, 12)

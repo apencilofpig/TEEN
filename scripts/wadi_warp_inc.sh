@@ -16,5 +16,5 @@ python train.py warp \
     -tmax 100 \
     -gpu '0' \
     -temperature 16 \
-    -fraction_to_keep 0.2 \
-    -seed 3407
+    -fraction_to_keep 0.04 \
+    -seed 3409
