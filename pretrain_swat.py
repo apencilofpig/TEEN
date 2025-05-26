@@ -33,13 +33,13 @@ RESNET_NUM_BLOCKS = [2, 2, 2, 2] # 每个阶段的残差块数量
 
 # 训练参数
 # BASE_CLASSES_RATIO 被 N_BASE_CLASSES 取代
-N_BASE_CLASSES = 16 # 基类数量
-N_INCREMENTAL_STAGES = 10 # 增量阶段数量
-N_INCREMENTAL_CLASSES_PER_STAGE = 2 # 每个增量阶段学习的类别数量
+N_BASE_CLASSES = 26 # 基类数量
+N_INCREMENTAL_STAGES = 2 # 增量阶段数量
+N_INCREMENTAL_CLASSES_PER_STAGE = 5 # 每个增量阶段学习的类别数量
 
-BATCH_SIZE = 64 # 批量大小
-EPOCHS_BASE_TRAINING = 20 # 基类训练轮数 (根据需要调整)
-LR_BASE = 0.001 # 基类训练学习率
+BATCH_SIZE = 128 # 批量大小
+EPOCHS_BASE_TRAINING = 100 # 基类训练轮数 (根据需要调整)
+LR_BASE = 0.1 # 基类训练学习率
 # EPOCHS_INCREMENTAL 不再需要，因为增量学习是基于原型计算
 
 # --- 1. 数据加载和预处理 ---
@@ -100,8 +100,18 @@ class SWATDataset(Dataset):
 # --- 2. CVXPY 优化 ---
 def calculate_W_init_cvxpy(data_np, labels_np, alpha_sensor_np, num_unique_classes_for_cvxpy):
     print("使用 CVXPY 计算 W_init...")
+    # 1. 定义优化变量 W_init
+    # 对应数学公式中的 W_init。N_FEATURES 即 D_in。
+    # cp.Variable 定义了一个cvxpy优化变量，它是一个 N_FEATURES x N_FEATURES 的矩阵。
     W_init_cvx = cp.Variable((N_FEATURES, N_FEATURES), name="W_init")
+    
+    # 2. 获取固定的alpha值
+    # alpha_sensor_np 即数学公式中的 alpha 向量 (alpha_p 的集合)
     alpha_cvx = alpha_sensor_np
+
+    # 3. 数据子采样，用于构建样本对 V_ij
+    # 因为样本对的数量可能非常大 (N^2 级别)，直接使用所有样本对会导致cvxpy问题过于庞大，难以求解。
+    # 因此，为每个类别随机抽取 CVXPY_SAMPLES_PER_CLASS 个样本，用这些子集样本来构建 V_ij。
     selected_indices = []
     
     # CVXPY阶段使用数据中实际存在的唯一标签
@@ -119,31 +129,49 @@ def calculate_W_init_cvxpy(data_np, labels_np, alpha_sensor_np, num_unique_class
 
     cvx_data = data_np[selected_indices]
     cvx_labels = labels_np[selected_indices]
+
+    # 4. 初始化 W_init^(0) (代码中为 W0_np)
+    # 这是线性化 f_1 时所围绕的固定点。通常选择单位矩阵作为初始猜测。
+    # 如果 CVXPY_NUM_EPOCHS_W0_UPDATE > 1，这个 W0_np 会在多轮cvxpy求解中被更新，
+    # 但对于获取一次性的初始化权重，通常只迭代一次（即默认值1）。
     W0_np = np.eye(N_FEATURES, dtype=np.float32)
 
+    # (通常 CVXPY_NUM_EPOCHS_W0_UPDATE 为1，所以这个循环只执行一次)
     for iter_cvxpy in range(CVXPY_NUM_EPOCHS_W0_UPDATE):
         print(f"CVXPY 迭代 {iter_cvxpy + 1}/{CVXPY_NUM_EPOCHS_W0_UPDATE}")
-        term1_intra_class_diff = []
+        
+        # --- 构建目标函数的第一部分: f_0(W_init) ---
+        # f_0(W_init) = sum_{intra-class pairs} sum_p alpha_p |(W_init * V_ij)_p|
+        term1_intra_class_diff = []  # 用于存储每个类内样本对的 f_0贡献项
         term2_inter_class_grad_sum = np.zeros_like(W0_np)
         num_cvx_samples = len(cvx_labels)
         pair_count_intra, pair_count_inter = 0, 0
-        MAX_CVX_PAIRS = 2000
+        MAX_CVX_PAIRS = 2000  # 限制用于构建优化问题的最大样本对数量
 
         for i in tqdm(range(num_cvx_samples), desc="CVXPY 类内样本对", leave=False):
             for j in range(i + 1, num_cvx_samples):
-                if cvx_labels[i] == cvx_labels[j]:
+                if cvx_labels[i] == cvx_labels[j]:  # 确保是类内样本对
                     if pair_count_intra < MAX_CVX_PAIRS:
+                        # V_ij = x_i - x_j
                         Vij = (cvx_data[i] - cvx_data[j]).reshape(-1, 1)
+
+                        # 构建 sum_p alpha_p |(W_init * V_ij)_p|
+                        # W_init_cvx @ Vij  =>  W_init * V_ij (矩阵乘法)
+                        # cp.abs(...)       =>  |(W_init * V_ij)_p| (逐元素取绝对值)
+                        # alpha_cvx @ ...   =>  alpha^T * |W_init * V_ij| (向量内积)
+                        # 这是一个标量，代表一个样本对的加权差异
                         term1_intra_class_diff.append(alpha_cvx @ cp.abs(W_init_cvx @ Vij))
                         pair_count_intra +=1
                     else: break
             if pair_count_intra >= MAX_CVX_PAIRS: break
         for i in tqdm(range(num_cvx_samples), desc="CVXPY 类间样本对 (梯度)", leave=False):
             for j in range(num_cvx_samples):
-                if cvx_labels[i] != cvx_labels[j]:
+                if cvx_labels[i] != cvx_labels[j]: # 确保是类间样本对
                     if pair_count_inter < MAX_CVX_PAIRS:
                         Vij = (cvx_data[i] - cvx_data[j]).reshape(-1, 1)
                         W0_Vij = W0_np @ Vij
+
+                        # 计算 (alpha 点乘 sgn(W_init^(0) * V_ij))
                         grad_f1_contrib = (alpha_cvx * np.sign(W0_Vij.flatten()))[:, np.newaxis] @ Vij.T
                         term2_inter_class_grad_sum += grad_f1_contrib
                         pair_count_inter +=1
@@ -152,13 +180,21 @@ def calculate_W_init_cvxpy(data_np, labels_np, alpha_sensor_np, num_unique_class
         if not term1_intra_class_diff:
              print("警告：CVXPY目标函数没有类内样本对。返回随机W_init。")
              return np.random.randn(N_FEATURES, N_FEATURES).astype(np.float32)
+        
+        # --- 组装最终的凸目标函数表达式 ---
+        # objective_expr = f_0(W_init) - lambda * Tr((G^(0))^T * W_init)
         objective_expr = cp.sum(term1_intra_class_diff)
         if pair_count_inter > 0 :
             objective_expr -= CVXPY_LAMBDA * cp.trace(term2_inter_class_grad_sum.T @ W_init_cvx)
+        
+        # --- 定义约束条件 ---
+        # ||W_init||_* <= C1
+        # cp.norm(W_init_cvx, "nuc") 计算 W_init_cvx 的核范数
         constraints = [cp.norm(W_init_cvx, "nuc") <= CVXPY_C1_NUCLEAR_NORM_LIMIT]
         problem = cp.Problem(cp.Minimize(objective_expr), constraints)
         print("正在求解CVXPY问题...")
         try:
+            # 使用SCS求解器，它比较适合这类问题，特别是规模较大时 
             problem.solve(solver=cp.SCS, verbose=False, max_iters=2500) # 减少冗余输出
         except cp.error.SolverError as e:
             print(f"CVXPY SolverError: {e}。尝试ECOS。")
