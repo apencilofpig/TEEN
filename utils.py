@@ -260,7 +260,7 @@ def harm_mean(seen, unseen):
 
 def get_optimizer(args, model, **kwargs):
         # prepare optimizer
-        if args.project in ['teen', 'warp', 'fbo']:
+        if args.project in ['teen', 'warp', 'fbo', 'convex']:
             if args.optim == 'sgd':
                 optimizer = torch.optim.SGD(model.parameters(), args.lr_base, 
                                             momentum=args.momentum, nesterov=True,

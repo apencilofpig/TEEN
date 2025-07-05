@@ -9,6 +9,20 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import cvxpy as cp
 from tqdm import tqdm
+from sklearn.manifold import TSNE
+import random
+
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    # 下面两行有时为了严格复现会设置，但可能牺牲性能
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 # --- 配置参数 ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") # 定义计算设备 (GPU优先)
@@ -17,7 +31,7 @@ print(f"使用设备: {DEVICE}")
 # SWaT 数据集特定参数
 N_FEATURES = 51 # 特征数量
 N_CLASSES = 36 # 数据集中预期的类别总数 (26 base + 10 incremental)
-MAX_SAMPLES_PER_CLASS = 2000 # 每个类别的最大样本数
+MAX_SAMPLES_PER_CLASS = 1000 # 每个类别的最大样本数
 CSV_FILE_PATH = 'data/swat/data_newlabel.csv' # 请替换为您的CSV文件路径
 JSON_ATTACK_PATH = 'data/swat/attack_point.json' # 请替换为您的JSON文件路径
 
@@ -33,9 +47,9 @@ RESNET_NUM_BLOCKS = [2, 2, 2, 2] # 每个阶段的残差块数量
 
 # 训练参数
 # BASE_CLASSES_RATIO 被 N_BASE_CLASSES 取代
-N_BASE_CLASSES = 26 # 基类数量
-N_INCREMENTAL_STAGES = 2 # 增量阶段数量
-N_INCREMENTAL_CLASSES_PER_STAGE = 5 # 每个增量阶段学习的类别数量
+N_BASE_CLASSES = 16 # 基类数量
+N_INCREMENTAL_STAGES = 10 # 增量阶段数量
+N_INCREMENTAL_CLASSES_PER_STAGE = 2 # 每个增量阶段学习的类别数量
 
 BATCH_SIZE = 128 # 批量大小
 EPOCHS_BASE_TRAINING = 100 # 基类训练轮数 (根据需要调整)
@@ -59,10 +73,20 @@ def load_data(csv_path, json_path):
         df.columns = list(range(N_FEATURES)) + ['label'] # 为伪数据添加列名以便groupby
 
     # 按标签列（最后一列）分组并采样
+    # new_labels_map = {
+    #     0: 0,
+    #     1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
+    #     10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15,
+        
+    #     16: 24, 17: 26, 18: 33, 19: 22, 20: 28, 21: 30, 22: 20, 23: 29, 
+    #     24: 34, 25: 35, 26: 31, 27: 21, 28: 25, 29: 27, 30: 16, 31: 19, 
+    #     32: 23, 33: 18, 34: 32, 35: 17
+    # }
+    new_labels_map = {i: i for i in range(36)}
     label_column_index = N_FEATURES # 标签列的索引 (0-indexed)
     df_sampled = df.groupby(label_column_index, group_keys=False).apply(lambda x: x.sample(min(len(x), MAX_SAMPLES_PER_CLASS)))
     data = df_sampled.iloc[:, :N_FEATURES].values
-    labels = df_sampled.iloc[:, label_column_index].values.astype(int)
+    labels = df_sampled.iloc[:, label_column_index].map(new_labels_map).values.astype(int)
 
     print(f"数据形状: {data.shape}, 标签形状: {labels.shape}")
     print(f"划分前独立标签: {np.unique(labels)}")
@@ -73,6 +97,11 @@ def load_data(csv_path, json_path):
     try:
         with open(json_path, 'r') as f:
             attack_info = json.load(f)
+            # 应用映射
+            for item in attack_info:
+                original_attack = item["attack"]
+                mapped_attack = new_labels_map.get(original_attack, -1)  # 使用 .get 防止键不存在
+                item["attack"] = mapped_attack
     except Exception as e:
         print(f"加载JSON文件出错: {e}")
         attack_info = [{"attack": i, "points": [j % N_FEATURES]} for i in range(N_CLASSES) for j in range(i % 3 + 1)]
@@ -549,4 +578,109 @@ if __name__ == '__main__':
     final_acc_print_str = ", ".join(acc_str_parts)
     print(f"\nacc0, acc1, ... : {final_acc_print_str}")
 
+    # --- 保存TSNE所需的特征和标签 ---
+    if base_model and len(test_data_current_stage_np) > 0:
+        print("\n--- 开始保存TSNE所需的特征和标签 ---")
+        
+        # 将测试数据转换为Tensor
+        test_data_tensor = torch.tensor(test_data_current_stage_np, dtype=torch.float32)
+        
+        # 提取特征 (使用原型方法中已有的分批处理逻辑以避免OOM)
+        features_list = []
+        test_dataloader_for_tsne = DataLoader(
+            TensorDataset(test_data_tensor),
+            batch_size=BATCH_SIZE * 2,
+            shuffle=False
+        )
+        
+        base_model.eval()
+        with torch.no_grad():
+            for (batch_data,) in tqdm(test_dataloader_for_tsne, desc="提取TSNE特征", leave=False):
+                batch_features = base_model(batch_data.to(DEVICE), extract_features=True)
+                features_list.append(batch_features.cpu())  # 确保在CPU上保存
+        
+        # 拼接所有特征
+        features_tsne = torch.cat(features_list, dim=0).numpy()
+        
+        # 标签列表
+        label_list = test_labels_current_stage_remapped_tensor.numpy()
+
+        tsne = TSNE(n_components=2, perplexity=50, random_state=42)
+        features_tsne = tsne.fit_transform(features_tsne)
+
+        # 保存到文件
+        np.save('features_tsne.npy', features_tsne)
+        np.save('label_list.npy', label_list)
+        
+        print(f"特征形状: {features_tsne.shape}, 标签形状: {label_list.shape}")
+        print("TSNE特征和标签已保存至 features_tsne.npy 和 label_list.npy")
+    else:
+        print("\n无法保存TSNE特征和标签：基模型不存在或测试数据为空。")
+
+    # --- 生成并保存混淆矩阵 ---
+    from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+    import matplotlib.pyplot as plt
+
+    if len(test_data_current_stage_np) > 0 and base_model:
+        print("\n--- 正在生成混淆矩阵 ---")
+        
+        # 将测试数据转换为Tensor
+        test_data_tensor = torch.tensor(test_data_current_stage_np, dtype=torch.float32)
+        test_labels_remapped_tensor = test_labels_current_stage_remapped_tensor
+
+        base_model.eval()
+        features_list = []
+        test_dataloader_eval = DataLoader(
+            TensorDataset(test_data_tensor),
+            batch_size=BATCH_SIZE * 2,
+            shuffle=False
+        )
+        
+        with torch.no_grad():
+            for (batch_data,) in tqdm(test_dataloader_eval, desc="提取测试特征(混淆矩阵)", leave=False):
+                features_list.append(base_model(batch_data.to(DEVICE), extract_features=True))
+        
+        query_features = torch.cat(features_list, dim=0)
+        feature_dim = next(iter(current_prototypes_remapped.values())).shape[0]
+        
+        prototype_tensor_list = []
+        for i in range(num_total_known_classes_remapped):
+            if i in current_prototypes_remapped:
+                prototype_tensor_list.append(current_prototypes_remapped[i])
+            else:
+                prototype_tensor_list.append(torch.zeros(feature_dim, device=DEVICE))
+        
+        prototype_matrix = torch.stack(prototype_tensor_list).to(DEVICE)
+
+        # 计算相似度
+        query_features_norm = query_features / (query_features.norm(dim=1, keepdim=True) + 1e-8)
+        prototype_matrix_norm = prototype_matrix / (prototype_matrix.norm(dim=1, keepdim=True) + 1e-8)
+        similarities = query_features_norm @ prototype_matrix_norm.T
+
+        predicted_global_remapped_labels = torch.argmax(similarities, dim=1).cpu().numpy()
+        true_labels = test_labels_current_stage_remapped_tensor.cpu().numpy()
+
+        # 生成混淆矩阵
+        cm = confusion_matrix(true_labels, predicted_global_remapped_labels)
+        cm = np.around((cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100), decimals=1) # 归一化
+
+        # 更改默认字体
+        plt.rcParams['font.family'] = 'Ubuntu'  # 这里以 'SimHei' 字体为例
+        plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示为方块的问题
+        plt.rcParams.update({'font.size': 8})
+        fig, ax = plt.subplots(figsize=(12, 12), dpi=800)
+        # 可视化混淆矩阵
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=list(range(N_CLASSES)))
+        disp.plot(cmap='Blues', ax=ax)
+        ax.tick_params(axis='both', which='major', labelsize=8)
+        ax.set_xticks(np.arange(len(disp.display_labels)))
+        ax.set_yticks(np.arange(len(disp.display_labels)))
+        ax.set_xticklabels(disp.display_labels)
+        ax.set_yticklabels(disp.display_labels)
+        ax.tick_params(axis='both', which='major', pad=10)
+        plt.savefig("confuse_matrix.png")
+
+        print(f"混淆矩阵已保存至 confuse_matrix.png")
+    else:
+        print("\n无法生成混淆矩阵：测试数据为空或基模型不存在。")
     print("\n--- 脚本执行完毕 ---")

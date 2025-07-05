@@ -10,7 +10,7 @@ from utils import Logger, pprint, set_gpu, set_logging, set_seed
 def get_command_line_parser():
     parser = argparse.ArgumentParser()
     # about dataset and network
-    parser.add_argument('-project', type=str, default='base', choices=['teen', 'warp', 'fbo'])
+    parser.add_argument('-project', type=str, default='base', choices=['teen', 'warp', 'fbo', 'convex'])
     parser.add_argument('-dataset', type=str, default='cifar100',
                         choices=['mini_imagenet', 'cub200', 'cifar100', 'swat', 'wadi', 'hai'])
     parser.add_argument('-dataroot', type=str, default='')
@@ -79,6 +79,17 @@ def add_commond_line_parser(params):
         parser.add_argument('-multi_proto_num', type=int, default=3)
         parser.add_argument('-knn_epoch', type=int, default=10)
         parser.add_argument('-alpha1', type=float, default=1)
+        args = parser.parse_args(params[2:])
+        return args
+    elif project == 'convex':
+        # multi-proto training
+        parser.add_argument('-csv_path', type=str, default='')
+        parser.add_argument('-json_path', type=str, default='')
+        parser.add_argument('-num_features_input', type=int, default=51)
+        parser.add_argument('-cvxpy_samples_per_class', type=int, default=10)
+        parser.add_argument('-max_cvx_pairs', type=int, default=2000)
+        parser.add_argument('-cvxpy_lambda', type=float, default=1.0)
+        parser.add_argument('-cvxpy_c1_limit', type=float, default=100.0)
         args = parser.parse_args(params[2:])
         return args
     else:

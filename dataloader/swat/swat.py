@@ -11,10 +11,10 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 base_class = 16
-num_classes= 36
-way = 2
+num_classes= 31
+way = 3
 shot = 5
-sessions = 11
+sessions = 6
 
 def restraint_samples_number(inputs, labels, max_class_item):
     # 统计每个类的样本数量
@@ -104,22 +104,29 @@ def generate_all_dataset(inputs, labels, base_class_num, num_classes, shot):
 
     return base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test
 
-df = pd.read_csv('data/swat/swat_ieee754.csv')
+df = pd.read_csv('data/swat/data_newlabel.csv')
 inputs = df.iloc[:, :-1].values
+
+# 该映射为 新标签：旧标签，键和值均构成类别的全集
 new_labels_map = {
-  0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 
-  10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 
-  18: 18, 19: 19, 20: 20, 21: 21, 22: 22, 23: 23, 24: 24, 25: 25, 
-  26: 34, 27: 26, 28: 31, 29: 29, 30: 27, 31: 35, 32: 32, 33: 28, 
-  34: 33, 35: 30
+    0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 
+    8: 8, 9: 22, 10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 24,
+    16: 21, 17: 9, 18: 23, 19: 15, 20: 25, 21: 26, 
+    22: 27, 23: 28, 24: 29, 25: 30, 26: 31, 27: 32, 
+    28: 33, 29: 34, 30: 35, 31: 16, 32: 17, 33: 18, 
+    34: 19, 35: 20
 }
+
+new_labels_map = {v: k for k, v in sorted(new_labels_map.items(), key=lambda item: item[1])}
+
+# new_labels_map = {i: i for i in range(36)}
 
 labels = df.iloc[:, -1].map(new_labels_map).values
 # labels = df.iloc[:, -1].values
 # inputs = inputs / 256.0
 # inputs = np.pad(inputs, ((0,0), (0,144-126)), mode='constant', constant_values=0)
 # inputs = inputs.reshape(inputs.shape[0], 1, 12, 12)
-inputs = inputs.reshape(inputs.shape[0], 1, -1)
+# inputs = inputs.reshape(inputs.shape[0], 1, -1)
 base_inputs_train, base_labels_train, base_inputs_test, base_labels_test, incremental_inputs_train, incremental_labels_train, incremental_inputs_test, incremental_labels_test = generate_all_dataset(inputs, labels, base_class, num_classes, shot)
 
 
@@ -141,7 +148,7 @@ class Swat(Dataset):
             self.targets = np.concatenate((base_labels_test, incremental_labels_test), axis=0)
             _, self.data, self.targets = get_class_items(self.data, self.targets, index)
 
-        self.data = torch.from_numpy(self.data).long()
+        self.data = torch.from_numpy(self.data).float()
         self.targets = torch.from_numpy(self.targets)
 
 

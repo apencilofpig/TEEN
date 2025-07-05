@@ -27,10 +27,10 @@ def set_up_datasets(args):
     if args.dataset == 'swat':
         import dataloader.swat.swat as Dataset
         args.base_class = 16
-        args.num_classes= 36
-        args.way = 2
+        args.num_classes= 31
+        args.way = 3
         args.shot = 5
-        args.sessions = 11
+        args.sessions = 6
     if args.dataset == 'wadi':
         import dataloader.wadi.wadi as Dataset
         args.base_class = 8
