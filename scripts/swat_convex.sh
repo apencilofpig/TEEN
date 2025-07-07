@@ -13,6 +13,7 @@ python train.py convex \
     -tmax 100 \
     -gpu '0' \
     -temperature 16 \
-    -seed 3408 \
+    -seed 3409 \
     -csv_path 'data/swat/data_newlabel.csv' \
-    -json_path 'data/swat/attack_point.json'
+    -json_path 'data/swat/attack_point.json' \
+    -is_pretrain

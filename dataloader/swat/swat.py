@@ -10,11 +10,11 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-base_class = 16
-num_classes= 31
-way = 3
+base_class = 21
+num_classes= 36
+way = 5
 shot = 5
-sessions = 6
+sessions = 4
 
 def restraint_samples_number(inputs, labels, max_class_item):
     # 统计每个类的样本数量
@@ -110,11 +110,11 @@ inputs = df.iloc[:, :-1].values
 # 该映射为 新标签：旧标签，键和值均构成类别的全集
 new_labels_map = {
     0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 
-    8: 8, 9: 22, 10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 24,
-    16: 21, 17: 9, 18: 23, 19: 15, 20: 25, 21: 26, 
-    22: 27, 23: 28, 24: 29, 25: 30, 26: 31, 27: 32, 
-    28: 33, 29: 34, 30: 35, 31: 16, 32: 17, 33: 18, 
-    34: 19, 35: 20
+    8: 8, 9: 10, 10: 11, 11: 14, 12: 17, 13: 18, 14: 19, 15: 20,
+    16: 21, 17: 22, 18: 24, 19: 31, 20: 32, 21: 9, 
+    22: 12, 23: 13, 24: 15, 25: 16, 26: 23, 27: 25, 
+    28: 26, 29: 27, 30: 28, 31: 29, 32: 30, 33: 33, 
+    34: 34, 35: 35
 }
 
 new_labels_map = {v: k for k, v in sorted(new_labels_map.items(), key=lambda item: item[1])}

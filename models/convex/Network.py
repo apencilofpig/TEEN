@@ -87,7 +87,8 @@ class MYNET(nn.Module):
         # +++ START OF MODIFICATION FOR SWAT DATASET +++
         elif self.args.dataset in ['swat']:
             # This linear layer will be initialized by the CVXPY weights
-            self.initial_linear = nn.Linear(args.num_features_input, args.num_features_input)
+            if self.args.is_pretrain:
+                self.initial_linear = nn.Linear(args.num_features_input, args.num_features_input)
             
             # The encoder is the 1D ResNet which follows the initial linear layer
             # num_blocks matches the standalone script's [2, 2, 2, 2]
@@ -117,8 +118,11 @@ class MYNET(nn.Module):
     def encode(self, x):
         # +++ START OF MODIFICATION FOR SWAT DATASET +++
         if self.args.dataset == 'swat':
-            # Pass through the CVXPY-initialized linear layer first
-            out = self.initial_linear(x)
+            if self.args.is_pretrain and self.initial_linear is not None:
+                # Pass through the CVXPY-initialized linear layer first
+                out = self.initial_linear(x)
+            else:
+                out = x
             # Add a channel dimension for the 1D convolution
             out = out.unsqueeze(1)
             # Pass through the 1D-ResNet encoder

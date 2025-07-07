@@ -90,6 +90,7 @@ def add_commond_line_parser(params):
         parser.add_argument('-max_cvx_pairs', type=int, default=2000)
         parser.add_argument('-cvxpy_lambda', type=float, default=1.0)
         parser.add_argument('-cvxpy_c1_limit', type=float, default=100.0)
+        parser.add_argument('-is_pretrain', action='store_true', help='If True, use pretrained model.')
         args = parser.parse_args(params[2:])
         return args
     else:

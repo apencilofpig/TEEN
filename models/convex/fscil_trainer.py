@@ -24,7 +24,7 @@ class FSCILTrainer(Trainer):
         W_init_torch = None
         # Only run CVXPY for the swat dataset during the initial setup (session 0)
         # and if not loading a pre-trained model.
-        if self.args.dataset == 'swat' and self.args.model_dir is None and self.args.start_session == 0:
+        if self.args.is_pretrain and self.args.dataset == 'swat' and self.args.model_dir is None and self.args.start_session == 0:
             logging.info("Preparing for CVXPY initialization for SWaT dataset.")
             # 1. Get all data and alpha sensor needed for CVXPY
             all_data, all_labels, alpha_sensor = get_swat_data_for_cvxpy(self.args)
