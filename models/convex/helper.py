@@ -43,6 +43,10 @@ def get_swat_data_for_cvxpy(args):
     if np.sum(alpha_counts) == 0:
         logging.warning("Alpha counts are all zero. Using uniform alpha.")
         alpha_counts = np.ones(args.num_features_input)
+
+    alpha_counts[1] = 35
+    alpha_counts[18] = 35
+    alpha_counts[28] = 35
     
     alpha_sensor_np = alpha_counts / np.sum(alpha_counts)
     logging.info(f"Alpha (sensor importance sum): {alpha_sensor_np.sum()}")

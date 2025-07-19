@@ -73,7 +73,8 @@ class MYNET(nn.Module):
 
         self.mode = mode
         self.args = args
-        self.initial_linear = None # For CVXPY weights
+        self.initial_conv = None # For CVXPY weights
+        self.initial_bn = None  # For CVXPY weights
 
         if self.args.dataset in ['cifar100','manyshotcifar']:
             self.encoder = resnet20()
@@ -88,7 +89,14 @@ class MYNET(nn.Module):
         elif self.args.dataset in ['swat']:
             # This linear layer will be initialized by the CVXPY weights
             if self.args.is_pretrain:
-                self.initial_linear = nn.Linear(args.num_features_input, args.num_features_input)
+                # 这个卷积层将作为可解释的预处理层，在encoder之前
+                self.initial_conv = nn.Conv1d(
+                    in_channels=args.num_features_input,
+                    out_channels=args.num_features_input,
+                    kernel_size=1,
+                    bias=False
+                )
+                self.initial_bn = nn.BatchNorm1d(args.num_features_input)
             
             # The encoder is the 1D ResNet which follows the initial linear layer
             # num_blocks matches the standalone script's [2, 2, 2, 2]
@@ -118,13 +126,16 @@ class MYNET(nn.Module):
     def encode(self, x):
         # +++ START OF MODIFICATION FOR SWAT DATASET +++
         if self.args.dataset == 'swat':
-            if self.args.is_pretrain and self.initial_linear is not None:
+            if self.args.is_pretrain and self.initial_conv is not None:
                 # Pass through the CVXPY-initialized linear layer first
-                out = self.initial_linear(x)
+                out = x.unsqueeze(-1)
+                out = self.initial_conv(out)
+                out = self.initial_bn(out)
+                out = out.squeeze(-1)  # Remove the last dimension
             else:
                 out = x
-            # Add a channel dimension for the 1D convolution
-            out = out.unsqueeze(1)
+
+            out = out.unsqueeze(1)  # Add a channel dimension for 1D Conv
             # Pass through the 1D-ResNet encoder
             return self.encoder(out)
         # +++ END OF MODIFICATION FOR SWAT DATASET +++
@@ -135,18 +146,19 @@ class MYNET(nn.Module):
             return x
 
     def set_initial_weights(self, W_init_tensor):
-        """Sets the weights for the initial_linear layer from CVXPY."""
-        if self.args.dataset == 'swat' and self.initial_linear is not None:
-            if W_init_tensor.shape == self.initial_linear.weight.shape:
-                with torch.no_grad():
-                    self.initial_linear.weight.copy_(W_init_tensor)
-                    if self.initial_linear.bias is not None:
-                        nn.init.zeros_(self.initial_linear.bias)
-                logging.info("Successfully set initial_linear weights from CVXPY.")
-            else:
-                logging.warning(f"CVXPY weight shape mismatch! Got {W_init_tensor.shape}, expected {self.initial_linear.weight.shape}. Using default init.")
+        # CVXPY返回的W_init_tensor是(51, 51)
+        # 我们需要将其变形为 (out_channels, in_channels, kernel_size) -> (51, 51, 1)
+        if W_init_tensor.dim() == 2:
+            W_init_tensor_conv = W_init_tensor.unsqueeze(-1)
         else:
-            logging.warning("set_initial_weights called for a model/dataset that does not support it.")
+            W_init_tensor_conv = W_init_tensor
+        
+        if W_init_tensor_conv.shape == self.initial_conv.weight.shape:
+            with torch.no_grad():
+                self.initial_conv.weight.copy_(W_init_tensor_conv)
+            print("已成功从CVXPY设置 MYNET 的 initial_conv 层权重。")
+        else:
+            print(f"形状不匹配: W_init_tensor {W_init_tensor_conv.shape}, initial_conv.weight {self.initial_conv.weight.shape}。权重未设置。")
 
     def forward(self, input):
         if self.mode != 'encoder':

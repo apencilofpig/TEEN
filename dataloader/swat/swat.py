@@ -108,18 +108,18 @@ df = pd.read_csv('data/swat/data_newlabel.csv')
 inputs = df.iloc[:, :-1].values
 
 # 该映射为 新标签：旧标签，键和值均构成类别的全集
-new_labels_map = {
-    0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 
-    8: 8, 9: 10, 10: 11, 11: 14, 12: 17, 13: 18, 14: 19, 15: 20,
-    16: 21, 17: 22, 18: 24, 19: 31, 20: 32, 21: 9, 
-    22: 12, 23: 13, 24: 15, 25: 16, 26: 23, 27: 25, 
-    28: 26, 29: 27, 30: 28, 31: 29, 32: 30, 33: 33, 
-    34: 34, 35: 35
-}
+# new_labels_map = {
+#     0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 
+#     8: 8, 9: 10, 10: 11, 11: 14, 12: 17, 13: 18, 14: 19, 15: 20,
+#     16: 21, 17: 22, 18: 24, 19: 31, 20: 32, 21: 9, 
+#     22: 12, 23: 13, 24: 15, 25: 16, 26: 23, 27: 25, 
+#     28: 26, 29: 27, 30: 28, 31: 29, 32: 30, 33: 33, 
+#     34: 34, 35: 35
+# }
 
-new_labels_map = {v: k for k, v in sorted(new_labels_map.items(), key=lambda item: item[1])}
+# new_labels_map = {v: k for k, v in sorted(new_labels_map.items(), key=lambda item: item[1])}
 
-# new_labels_map = {i: i for i in range(36)}
+new_labels_map = {i: i for i in range(36)}
 
 labels = df.iloc[:, -1].map(new_labels_map).values
 # labels = df.iloc[:, -1].values
